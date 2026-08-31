@@ -1,0 +1,16 @@
+name: RandomizedEvents
+version: ${project.version}
+main: org.example.randomizedevents.RandomizedEvents
+description: Spawns randomized custom events around players
+api-version: '26.2'
+
+commands:
+  randomevents:
+    description: Admin tools for RandomizedEvents
+    usage: /randomevents <bossboard|reload|status|start|stop|run|spawnclass|gearstage|setstage|list|cleanup>
+    aliases: [revents]
+
+permissions:
+  randomizedevents.admin:
+    description: Allows administrative RandomizedEvents commands
+    default: op

@@ -1,0 +1,1556 @@
+settings:
+  enabled: true
+  announce-events: true
+  min-online-players: 1
+  require-target-in-survival: true
+  cleanup-event-mobs-on-disable: true
+  cleanup-event-mobs-on-reload: false
+  clear-vanilla-drops-from-event-mobs: true
+  despawn-after-seconds: 1800
+  despawn:
+    when-no-players-nearby:
+      enabled: true
+      radius: 96
+      delay-seconds: 180
+    target-bound-when-target-unavailable:
+      enabled: true
+      delay-seconds: 5
+      combat-grace-seconds: 5
+      behaviors:
+        - hunter_focus
+      events:
+        - assassination_attempt
+  safe-radius-from-world-spawn: 64
+  disabled-worlds: []
+  spawn-safety:
+    require-loaded-chunk: true
+    max-event-mobs-in-radius: 24
+    event-mob-density-radius: 48
+    min-distance-from-online-bed-spawns: 32
+    disabled-biomes:
+      - DEEP_DARK
+      - MUSHROOM_FIELDS
+  gear-scaling:
+    enabled: true
+    days-per-stage: 4
+    max-stage: 24
+    random-stage-variance: 1
+    stage-override: -1
+  world-scaling:
+    enabled: true
+    days-per-stage: 4
+    max-stage: 24
+    stage-override: -1
+    stats:
+      health-bonus-per-stage: 0.0125
+      max-health-bonus: 0.30
+      attack-damage-bonus-per-stage: 0.01
+      max-attack-damage-bonus: 0.24
+      armor-bonus-per-stage: 0.008
+      max-armor-bonus: 0.18
+      movement-speed-bonus-per-stage: 0.002
+      max-movement-speed-bonus: 0.05
+      follow-range-bonus-per-stage: 0.006
+      max-follow-range-bonus: 0.15
+    event-budget:
+      bonus-per-stage: 0.015
+      max-bonus: 0.35
+    mob-count:
+      extra-chance-per-stage: 0.006
+      max-extra-chance: 0.15
+      max-extra-mobs-per-class: 1
+    loot:
+      chance-bonus-per-stage: 0.003
+      max-chance-bonus: 0.08
+      extra-amount-chance-per-stage: 0.004
+      max-extra-amount-chance: 0.10
+      max-extra-amount: 1
+  interval-seconds:
+    min: 1800
+    max: 7200
+
+messages:
+  prefix: '&8[&cEvents&8]&r '
+  event-started: '&7Event &c{event}&7 appeared near &e{player}&7. &8({x}, {y}, {z})'
+  forced-event-started: '&aForced event &e{event}&a near &e{player}&a.'
+  no-valid-players: '&cNo valid players are online.'
+  no-enabled-events: '&cNo enabled events are configured.'
+
+anchor-events:
+  enemy_camp:
+    banner-material: RED_BANNER
+    sub-event-interval-seconds: 1800
+    sub-event-radius: 1000
+    no-target-timeout-seconds: 1800
+    banner-destroyed-despawn-seconds: 1800
+    guard-leash-radius: 28
+    guard-awake-radius: 48
+    sub-events:
+      - patrol
+      - ambush
+      - explosive_ambush
+      - hunter_event
+  cursed_ritual:
+    banner-material: PURPLE_BANNER
+    sub-event-interval-seconds: 1800
+    sub-event-radius: 1000
+    no-target-timeout-seconds: 1800
+    banner-destroyed-despawn-seconds: 1800
+    guard-leash-radius: 24
+    guard-awake-radius: 48
+    sub-events:
+      - patrol
+      - ambush
+      - explosive_ambush
+      - hunter_event
+
+gear-profiles:
+  light_melee:
+    main-hand:
+      steps:
+        - {stage: 0, weight: 8, material: WOODEN_SWORD}
+        - {stage: 0, weight: 2, material: WOODEN_AXE}
+        - {stage: 2, weight: 7, material: STONE_SWORD}
+        - {stage: 2, weight: 3, material: WOODEN_SWORD, enchantments: {SHARPNESS: 1}}
+        - {stage: 4, weight: 7, material: STONE_SWORD, enchantments: {SHARPNESS: 1}}
+        - {stage: 4, weight: 3, material: STONE_AXE}
+        - {stage: 6, weight: 7, material: IRON_SWORD}
+        - {stage: 6, weight: 3, material: STONE_SWORD, enchantments: {SHARPNESS: 1}}
+        - {stage: 8, weight: 6, material: IRON_SWORD, enchantments: {SHARPNESS: 1}}
+        - {stage: 8, weight: 4, material: IRON_AXE}
+        - {stage: 11, weight: 7, material: IRON_SWORD, enchantments: {SHARPNESS: 2}}
+        - {stage: 11, weight: 3, material: IRON_AXE, enchantments: {SHARPNESS: 1}}
+        - {stage: 14, weight: 6, material: DIAMOND_SWORD}
+        - {stage: 14, weight: 4, material: IRON_SWORD, enchantments: {SHARPNESS: 2}}
+        - {stage: 17, weight: 7, material: DIAMOND_SWORD, enchantments: {SHARPNESS: 1}}
+        - {stage: 17, weight: 3, material: DIAMOND_AXE}
+        - {stage: 20, weight: 7, material: DIAMOND_SWORD, enchantments: {SHARPNESS: 2}}
+        - {stage: 20, weight: 3, material: DIAMOND_AXE, enchantments: {SHARPNESS: 1}}
+        - {stage: 23, weight: 6, material: NETHERITE_SWORD, enchantments: {SHARPNESS: 2}}
+        - {stage: 23, weight: 4, material: DIAMOND_SWORD, enchantments: {SHARPNESS: 3}}
+
+  spear_light:
+    main-hand:
+      steps:
+        - {stage: 0, weight: 8, material: WOODEN_SPEAR}
+        - {stage: 0, weight: 2, material: WOODEN_SWORD}
+        - {stage: 2, weight: 8, material: STONE_SPEAR}
+        - {stage: 2, weight: 2, material: WOODEN_SPEAR, enchantments: {SHARPNESS: 1}}
+        - {stage: 5, weight: 7, material: STONE_SPEAR, enchantments: {SHARPNESS: 1}}
+        - {stage: 5, weight: 3, material: IRON_SPEAR}
+        - {stage: 8, weight: 8, material: IRON_SPEAR}
+        - {stage: 8, weight: 2, material: STONE_SPEAR, enchantments: {SHARPNESS: 2}}
+        - {stage: 11, weight: 7, material: IRON_SPEAR, enchantments: {SHARPNESS: 1}}
+        - {stage: 11, weight: 3, material: IRON_SPEAR, enchantments: {UNBREAKING: 1}}
+        - {stage: 15, weight: 6, material: DIAMOND_SPEAR}
+        - {stage: 15, weight: 4, material: IRON_SPEAR, enchantments: {SHARPNESS: 2}}
+        - {stage: 19, weight: 7, material: DIAMOND_SPEAR, enchantments: {SHARPNESS: 1}}
+        - {stage: 19, weight: 3, material: DIAMOND_SPEAR, enchantments: {UNBREAKING: 1}}
+        - {stage: 23, weight: 5, material: NETHERITE_SPEAR, enchantments: {SHARPNESS: 1}}
+        - {stage: 23, weight: 5, material: DIAMOND_SPEAR, enchantments: {SHARPNESS: 2}}
+    helmet:
+      chance: 0.45
+      steps:
+        - {stage: 0, material: LEATHER_HELMET}
+        - {stage: 8, material: COPPER_HELMET}
+        - {stage: 15, material: IRON_HELMET}
+    boots:
+      chance: 0.55
+      steps:
+        - {stage: 0, material: LEATHER_BOOTS}
+        - {stage: 8, material: COPPER_BOOTS}
+        - {stage: 15, material: IRON_BOOTS}
+
+  archer:
+    main-hand:
+      steps:
+        - {stage: 0, weight: 10, material: BOW}
+        - {stage: 2, weight: 8, material: BOW, enchantments: {POWER: 1}}
+        - {stage: 2, weight: 2, material: BOW}
+        - {stage: 5, weight: 6, material: BOW, enchantments: {POWER: 1, PUNCH: 1}}
+        - {stage: 5, weight: 4, material: BOW, enchantments: {POWER: 2}}
+        - {stage: 8, weight: 7, material: BOW, enchantments: {POWER: 2}}
+        - {stage: 8, weight: 3, material: BOW, enchantments: {POWER: 1, PUNCH: 1}}
+        - {stage: 11, weight: 7, material: BOW, enchantments: {POWER: 2, PUNCH: 1}}
+        - {stage: 11, weight: 3, material: BOW, enchantments: {POWER: 3}}
+        - {stage: 14, weight: 7, material: BOW, enchantments: {POWER: 3, PUNCH: 1}}
+        - {stage: 14, weight: 3, material: BOW, enchantments: {POWER: 2, FLAME: 1}}
+        - {stage: 17, weight: 6, material: BOW, enchantments: {POWER: 3, PUNCH: 1, FLAME: 1}}
+        - {stage: 17, weight: 4, material: BOW, enchantments: {POWER: 4}}
+        - {stage: 20, weight: 7, material: BOW, enchantments: {POWER: 4, PUNCH: 1, FLAME: 1}}
+        - {stage: 20, weight: 3, material: BOW, enchantments: {POWER: 3, PUNCH: 2, FLAME: 1}}
+        - {stage: 23, weight: 7, material: BOW, enchantments: {POWER: 4, PUNCH: 2, FLAME: 1}}
+        - {stage: 23, weight: 3, material: BOW, enchantments: {POWER: 5, PUNCH: 1}}
+    helmet:
+      chance: 0.35
+      steps:
+        - {stage: 0, material: LEATHER_HELMET}
+        - {stage: 9, material: CHAINMAIL_HELMET}
+        - {stage: 16, material: IRON_HELMET}
+        - {stage: 23, material: DIAMOND_HELMET}
+
+  crossbow:
+    main-hand:
+      steps:
+        - {stage: 0, weight: 10, material: CROSSBOW}
+        - {stage: 4, weight: 8, material: CROSSBOW, enchantments: {QUICK_CHARGE: 1}}
+        - {stage: 4, weight: 2, material: CROSSBOW, enchantments: {PIERCING: 1}}
+        - {stage: 8, weight: 7, material: CROSSBOW, enchantments: {QUICK_CHARGE: 1, PIERCING: 1}}
+        - {stage: 8, weight: 3, material: CROSSBOW, enchantments: {QUICK_CHARGE: 2}}
+        - {stage: 12, weight: 7, material: CROSSBOW, enchantments: {QUICK_CHARGE: 2}}
+        - {stage: 12, weight: 3, material: CROSSBOW, enchantments: {QUICK_CHARGE: 1, MULTISHOT: 1}}
+        - {stage: 16, weight: 7, material: CROSSBOW, enchantments: {QUICK_CHARGE: 2, MULTISHOT: 1}}
+        - {stage: 16, weight: 3, material: CROSSBOW, enchantments: {QUICK_CHARGE: 2, PIERCING: 2}}
+        - {stage: 21, weight: 7, material: CROSSBOW, enchantments: {QUICK_CHARGE: 3, MULTISHOT: 1}}
+        - {stage: 21, weight: 3, material: CROSSBOW, enchantments: {QUICK_CHARGE: 3, PIERCING: 3}}
+
+  medium_armor:
+    helmet:
+      chance: 0.55
+      steps:
+        - {stage: 0, weight: 7, material: LEATHER_HELMET}
+        - {stage: 0, weight: 3, material: COPPER_HELMET}
+        - {stage: 3, weight: 7, material: COPPER_HELMET}
+        - {stage: 3, weight: 3, material: LEATHER_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 6, weight: 6, material: CHAINMAIL_HELMET}
+        - {stage: 6, weight: 4, material: COPPER_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 10, weight: 7, material: IRON_HELMET}
+        - {stage: 10, weight: 3, material: CHAINMAIL_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 15, weight: 7, material: IRON_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 15, weight: 3, material: IRON_HELMET, enchantments: {PROJECTILE_PROTECTION: 2}}
+        - {stage: 20, weight: 7, material: DIAMOND_HELMET}
+        - {stage: 20, weight: 3, material: IRON_HELMET, enchantments: {PROTECTION: 2}}
+        - {stage: 24, weight: 8, material: DIAMOND_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 24, weight: 2, material: DIAMOND_HELMET, enchantments: {PROJECTILE_PROTECTION: 2}}
+    chestplate:
+      chance: 0.35
+      steps:
+        - {stage: 0, weight: 8, material: LEATHER_CHESTPLATE}
+        - {stage: 0, weight: 2, material: COPPER_CHESTPLATE}
+        - {stage: 3, weight: 7, material: COPPER_CHESTPLATE}
+        - {stage: 3, weight: 3, material: LEATHER_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 7, weight: 6, material: CHAINMAIL_CHESTPLATE}
+        - {stage: 7, weight: 4, material: COPPER_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 11, weight: 7, material: IRON_CHESTPLATE}
+        - {stage: 11, weight: 3, material: CHAINMAIL_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 16, weight: 7, material: IRON_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 16, weight: 3, material: IRON_CHESTPLATE, enchantments: {BLAST_PROTECTION: 2}}
+        - {stage: 21, weight: 7, material: DIAMOND_CHESTPLATE}
+        - {stage: 21, weight: 3, material: IRON_CHESTPLATE, enchantments: {PROTECTION: 2}}
+    leggings:
+      chance: 0.32
+      steps:
+        - {stage: 0, weight: 8, material: LEATHER_LEGGINGS}
+        - {stage: 0, weight: 2, material: COPPER_LEGGINGS}
+        - {stage: 4, weight: 7, material: COPPER_LEGGINGS}
+        - {stage: 4, weight: 3, material: LEATHER_LEGGINGS, enchantments: {PROTECTION: 1}}
+        - {stage: 8, weight: 6, material: CHAINMAIL_LEGGINGS}
+        - {stage: 8, weight: 4, material: COPPER_LEGGINGS, enchantments: {PROTECTION: 1}}
+        - {stage: 12, weight: 7, material: IRON_LEGGINGS}
+        - {stage: 12, weight: 3, material: CHAINMAIL_LEGGINGS, enchantments: {PROTECTION: 1}}
+        - {stage: 17, weight: 8, material: IRON_LEGGINGS, enchantments: {PROTECTION: 1}}
+        - {stage: 17, weight: 2, material: IRON_LEGGINGS, enchantments: {FIRE_PROTECTION: 2}}
+        - {stage: 22, weight: 7, material: DIAMOND_LEGGINGS}
+        - {stage: 22, weight: 3, material: IRON_LEGGINGS, enchantments: {PROTECTION: 2}}
+    boots:
+      chance: 0.45
+      steps:
+        - {stage: 0, weight: 8, material: LEATHER_BOOTS}
+        - {stage: 0, weight: 2, material: COPPER_BOOTS}
+        - {stage: 5, weight: 7, material: COPPER_BOOTS}
+        - {stage: 5, weight: 3, material: LEATHER_BOOTS, enchantments: {FEATHER_FALLING: 1}}
+        - {stage: 9, weight: 6, material: CHAINMAIL_BOOTS}
+        - {stage: 9, weight: 4, material: COPPER_BOOTS, enchantments: {PROTECTION: 1}}
+        - {stage: 13, weight: 7, material: IRON_BOOTS}
+        - {stage: 13, weight: 3, material: CHAINMAIL_BOOTS, enchantments: {PROTECTION: 1}}
+        - {stage: 18, weight: 7, material: IRON_BOOTS, enchantments: {PROTECTION: 1}}
+        - {stage: 18, weight: 3, material: IRON_BOOTS, enchantments: {FEATHER_FALLING: 2}}
+        - {stage: 23, weight: 7, material: DIAMOND_BOOTS}
+        - {stage: 23, weight: 3, material: IRON_BOOTS, enchantments: {PROTECTION: 2}}
+
+  heavy_tank:
+    helmet:
+      chance: 0.85
+      steps:
+        - {stage: 0, weight: 7, material: COPPER_HELMET}
+        - {stage: 0, weight: 3, material: LEATHER_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 4, weight: 6, material: CHAINMAIL_HELMET}
+        - {stage: 4, weight: 4, material: COPPER_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 8, weight: 7, material: IRON_HELMET}
+        - {stage: 8, weight: 3, material: CHAINMAIL_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 13, weight: 8, material: IRON_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 13, weight: 2, material: IRON_HELMET, enchantments: {PROJECTILE_PROTECTION: 2}}
+        - {stage: 18, weight: 7, material: DIAMOND_HELMET}
+        - {stage: 18, weight: 3, material: IRON_HELMET, enchantments: {PROTECTION: 2}}
+        - {stage: 23, weight: 8, material: DIAMOND_HELMET, enchantments: {PROTECTION: 2}}
+        - {stage: 23, weight: 2, material: DIAMOND_HELMET, enchantments: {BLAST_PROTECTION: 3}}
+    chestplate:
+      chance: 0.75
+      steps:
+        - {stage: 0, weight: 6, material: LEATHER_CHESTPLATE}
+        - {stage: 0, weight: 4, material: COPPER_CHESTPLATE}
+        - {stage: 3, weight: 7, material: COPPER_CHESTPLATE}
+        - {stage: 3, weight: 3, material: LEATHER_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 7, weight: 6, material: CHAINMAIL_CHESTPLATE}
+        - {stage: 7, weight: 4, material: COPPER_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 10, weight: 8, material: IRON_CHESTPLATE}
+        - {stage: 10, weight: 2, material: CHAINMAIL_CHESTPLATE, enchantments: {PROTECTION: 2}}
+        - {stage: 15, weight: 8, material: IRON_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 15, weight: 2, material: IRON_CHESTPLATE, enchantments: {BLAST_PROTECTION: 2}}
+        - {stage: 20, weight: 7, material: DIAMOND_CHESTPLATE}
+        - {stage: 20, weight: 3, material: IRON_CHESTPLATE, enchantments: {PROTECTION: 2}}
+        - {stage: 24, weight: 8, material: DIAMOND_CHESTPLATE, enchantments: {PROTECTION: 2}}
+        - {stage: 24, weight: 2, material: DIAMOND_CHESTPLATE, enchantments: {PROJECTILE_PROTECTION: 3}}
+    leggings:
+      chance: 0.65
+      steps:
+        - {stage: 0, weight: 7, material: LEATHER_LEGGINGS}
+        - {stage: 0, weight: 3, material: COPPER_LEGGINGS}
+        - {stage: 5, weight: 7, material: COPPER_LEGGINGS}
+        - {stage: 5, weight: 3, material: CHAINMAIL_LEGGINGS}
+        - {stage: 9, weight: 8, material: IRON_LEGGINGS}
+        - {stage: 9, weight: 2, material: CHAINMAIL_LEGGINGS, enchantments: {PROTECTION: 1}}
+        - {stage: 16, weight: 8, material: IRON_LEGGINGS, enchantments: {PROTECTION: 1}}
+        - {stage: 16, weight: 2, material: IRON_LEGGINGS, enchantments: {FIRE_PROTECTION: 2}}
+        - {stage: 22, weight: 7, material: DIAMOND_LEGGINGS}
+        - {stage: 22, weight: 3, material: IRON_LEGGINGS, enchantments: {PROTECTION: 2}}
+    boots:
+      chance: 0.75
+      steps:
+        - {stage: 0, weight: 7, material: LEATHER_BOOTS}
+        - {stage: 0, weight: 3, material: COPPER_BOOTS}
+        - {stage: 6, weight: 7, material: COPPER_BOOTS}
+        - {stage: 6, weight: 3, material: CHAINMAIL_BOOTS}
+        - {stage: 11, weight: 8, material: IRON_BOOTS}
+        - {stage: 11, weight: 2, material: CHAINMAIL_BOOTS, enchantments: {PROTECTION: 1}}
+        - {stage: 17, weight: 8, material: IRON_BOOTS, enchantments: {PROTECTION: 1}}
+        - {stage: 17, weight: 2, material: IRON_BOOTS, enchantments: {FEATHER_FALLING: 2}}
+        - {stage: 23, weight: 7, material: DIAMOND_BOOTS}
+        - {stage: 23, weight: 3, material: IRON_BOOTS, enchantments: {PROTECTION: 2}}
+
+  brute_gold:
+    helmet:
+      steps:
+        - {stage: 0, material: GOLDEN_HELMET}
+        - {stage: 8, material: GOLDEN_HELMET, enchantments: {PROTECTION: 1}}
+        - {stage: 16, material: GOLDEN_HELMET, enchantments: {PROTECTION: 2}}
+    chestplate:
+      steps:
+        - {stage: 0, material: GOLDEN_CHESTPLATE}
+        - {stage: 9, material: GOLDEN_CHESTPLATE, enchantments: {PROTECTION: 1}}
+        - {stage: 17, material: GOLDEN_CHESTPLATE, enchantments: {PROTECTION: 2}}
+    leggings:
+      steps:
+        - {stage: 0, material: GOLDEN_LEGGINGS}
+        - {stage: 10, material: GOLDEN_LEGGINGS, enchantments: {PROTECTION: 1}}
+    boots:
+      steps:
+        - {stage: 0, material: GOLDEN_BOOTS}
+        - {stage: 10, material: GOLDEN_BOOTS, enchantments: {PROTECTION: 1}}
+
+mob-classes:
+  horde_basic:
+    type: HUSK
+    cost: 1
+    count-min: 1
+    count-max: 1
+    name: '&6Horde Grunt'
+    health: 26.0
+    attack-damage: 5.0
+    movement-speed: 0.22
+    follow-range: 38.0
+    loot:
+      - {material: ROTTEN_FLESH, amount-min: 1, amount-max: 2, chance: 0.45}
+      - {material: BONE, amount-min: 1, amount-max: 1, chance: 0.18}
+      - {material: IRON_NUGGET, amount-min: 1, amount-max: 2, chance: 0.08}
+
+  horde_fast:
+    type: HUSK
+    cost: 2
+    count-min: 1
+    count-max: 1
+    gear-profile: light_melee
+    name: '&eHorde Runner'
+    health: 18.0
+    attack-damage: 4.0
+    movement-speed: 0.33
+    follow-range: 42.0
+    loot:
+      - {material: ROTTEN_FLESH, amount-min: 1, amount-max: 2, chance: 0.38}
+      - {material: STRING, amount-min: 1, amount-max: 2, chance: 0.14}
+      - {material: SUGAR, amount-min: 1, amount-max: 3, chance: 0.12}
+
+  horde_armored:
+    type: HUSK
+    cost: 3
+    count-min: 1
+    count-max: 1
+    gear-profile: medium_armor
+    name: '&8Horde Bulwark'
+    health: 42.0
+    attack-damage: 4.5
+    movement-speed: 0.18
+    armor: 8.0
+    loot:
+      - {material: IRON_NUGGET, amount-min: 2, amount-max: 5, chance: 0.38}
+      - {material: COPPER_INGOT, amount-min: 1, amount-max: 3, chance: 0.28}
+      - {material: IRON_INGOT, amount-min: 1, amount-max: 1, chance: 0.08}
+
+  horde_burning:
+    type: HUSK
+    cost: 3
+    count-min: 1
+    count-max: 1
+    name: '&cBurning Horde'
+    health: 28.0
+    attack-damage: 5.0
+    movement-speed: 0.23
+    fire-ticks: 999999
+    behaviors: [burning_melee]
+    loot:
+      - {material: CHARCOAL, amount-min: 1, amount-max: 3, chance: 0.42}
+      - {material: COAL, amount-min: 1, amount-max: 2, chance: 0.24}
+      - {material: BLAZE_POWDER, amount-min: 1, amount-max: 1, chance: 0.06}
+
+  berserker:
+    type: VINDICATOR
+    cost: 4
+    count-min: 1
+    count-max: 1
+    name: '&cBerserker'
+    health: 18.0
+    attack-damage: 11.0
+    movement-speed: 0.34
+    behaviors: [self_effect_on_target]
+    self-effect-on-target:
+      effect: POISON
+      amplifier: 0
+      duration-seconds: 90
+    loot:
+      - {material: REDSTONE, amount-min: 2, amount-max: 5, chance: 0.35}
+      - {material: IRON_INGOT, amount-min: 1, amount-max: 2, chance: 0.22}
+      - material: POTION
+        amount-min: 1
+        amount-max: 1
+        chance: 0.08
+        name: '&cBerserker Draught'
+        potion-effects:
+          - {type: STRENGTH, amplifier: 0, duration-seconds: 45}
+
+  tank:
+    type: ZOMBIE_VILLAGER
+    cost: 6
+    count-min: 1
+    count-max: 1
+    gear-profile: heavy_tank
+    name: '&7Siege Tank'
+    health: 90.0
+    attack-damage: 7.0
+    movement-speed: 0.17
+    armor: 12.0
+    knockback-resistance: 0.75
+    glowing: true
+    loot:
+      - {material: IRON_INGOT, amount-min: 1, amount-max: 3, chance: 0.36}
+      - {material: COPPER_INGOT, amount-min: 2, amount-max: 5, chance: 0.34}
+      - {material: DIAMOND, amount-min: 1, amount-max: 1, chance: 0.04}
+      - material: POTION
+        amount-min: 1
+        amount-max: 1
+        chance: 0.05
+        name: '&2Turtle Master Draught'
+        potion-effects:
+          - {type: RESISTANCE, amplifier: 2, duration-seconds: 20}
+          - {type: SLOWNESS, amplifier: 3, duration-seconds: 20}
+
+  archer_skeleton:
+    type: SKELETON
+    cost: 3
+    count-min: 1
+    count-max: 1
+    gear-profile: archer
+    name: '&7Archer'
+    health: 18.0
+    follow-range: 48.0
+    loot:
+      - {material: ARROW, amount-min: 4, amount-max: 12, chance: 0.45}
+      - {material: BONE, amount-min: 1, amount-max: 3, chance: 0.35}
+      - {material: FLINT, amount-min: 1, amount-max: 2, chance: 0.16}
+      - {material: SPECTRAL_ARROW, amount-min: 2, amount-max: 6, chance: 0.05}
+
+  archer_stray:
+    type: STRAY
+    cost: 4
+    count-min: 1
+    count-max: 1
+    gear-profile: archer
+    name: '&bFrost Archer'
+    health: 20.0
+    follow-range: 54.0
+    loot:
+      - {material: ARROW, amount-min: 4, amount-max: 12, chance: 0.42}
+      - {material: BONE, amount-min: 1, amount-max: 3, chance: 0.30}
+      - {material: SNOWBALL, amount-min: 4, amount-max: 12, chance: 0.22}
+      - {material: PACKED_ICE, amount-min: 1, amount-max: 2, chance: 0.08}
+
+  shaman_evoker:
+    type: EVOKER
+    cost: 8
+    count-min: 1
+    count-max: 1
+    name: '&5Shaman'
+    health: 48.0
+    movement-speed: 0.28
+    follow-range: 42.0
+    behaviors: [debuff_aura]
+    debuff:
+      effect: SLOWNESS
+      duration-seconds: 5
+      amplifier: 0
+      radius: 12.0
+      interval-seconds: 10
+    loot:
+      - {material: EMERALD, amount-min: 1, amount-max: 3, chance: 0.38}
+      - {material: AMETHYST_SHARD, amount-min: 2, amount-max: 5, chance: 0.34}
+      - {material: GLOWSTONE_DUST, amount-min: 2, amount-max: 6, chance: 0.30}
+      - {material: EXPERIENCE_BOTTLE, amount-min: 2, amount-max: 5, chance: 0.16}
+      - material: ENCHANTED_BOOK
+        amount-min: 1
+        amount-max: 1
+        chance: 0.06
+        enchantments: {UNBREAKING: 2}
+
+  necromancer:
+    type: EVOKER
+    cost: 9
+    count-min: 1
+    count-max: 1
+    name: '&5Necromancer'
+    health: 54.0
+    movement-speed: 0.25
+    follow-range: 42.0
+    behaviors: [necromancer_summon]
+    summon:
+      classes: [horde_basic, horde_fast, horde_armored]
+      interval-seconds: 18
+      count-min: 1
+      count-max: 2
+      radius: 5.0
+    loot:
+      - {material: BONE, amount-min: 3, amount-max: 8, chance: 0.45}
+      - {material: SOUL_SAND, amount-min: 1, amount-max: 3, chance: 0.28}
+      - {material: EXPERIENCE_BOTTLE, amount-min: 2, amount-max: 5, chance: 0.18}
+      - {material: ECHO_SHARD, amount-min: 1, amount-max: 1, chance: 0.03}
+      - material: ENCHANTED_BOOK
+        amount-min: 1
+        amount-max: 1
+        chance: 0.08
+        enchantments: {VANISHING_CURSE: 1}
+
+  medic_witch:
+    type: WITCH
+    cost: 7
+    count-min: 1
+    count-max: 1
+    name: '&aMedic'
+    health: 38.0
+    movement-speed: 0.27
+    behaviors: [medic_aura]
+    medic:
+      heal-amount: 5.0
+      radius: 9.0
+      interval-seconds: 8
+    loot:
+      - {material: GLOWSTONE_DUST, amount-min: 1, amount-max: 4, chance: 0.34}
+      - {material: REDSTONE, amount-min: 1, amount-max: 4, chance: 0.34}
+      - {material: SPIDER_EYE, amount-min: 1, amount-max: 2, chance: 0.22}
+      - {material: GLISTERING_MELON_SLICE, amount-min: 1, amount-max: 2, chance: 0.10}
+
+  support_shulker:
+    type: SHULKER
+    cost: 7
+    count-min: 1
+    count-max: 1
+    name: '&dSupport Shulker'
+    health: 32.0
+    armor: 8.0
+    follow-range: 36.0
+    behaviors: [debuff_aura]
+    debuff:
+      effect: LEVITATION
+      duration-seconds: 2
+      amplifier: 0
+      radius: 10.0
+      interval-seconds: 14
+    loot:
+      - {material: AMETHYST_SHARD, amount-min: 2, amount-max: 6, chance: 0.36}
+      - {material: ENDER_PEARL, amount-min: 1, amount-max: 1, chance: 0.10}
+      - {material: SHULKER_SHELL, amount-min: 1, amount-max: 1, chance: 0.025}
+
+  creeper_small:
+    type: CREEPER
+    cost: 3
+    count-min: 1
+    count-max: 1
+    name: '&aSmall Creeper'
+    health: 10.0
+    movement-speed: 0.34
+    behaviors: [no_block_damage]
+    creeper:
+      fuse-ticks: 22
+      explosion-radius: 2
+    loot:
+      - {material: GUNPOWDER, amount-min: 1, amount-max: 2, chance: 0.42}
+      - {material: FLINT_AND_STEEL, amount-min: 1, amount-max: 1, chance: 0.025}
+
+  creeper_mid:
+    type: CREEPER
+    cost: 4
+    count-min: 1
+    count-max: 1
+    name: '&eMid Creeper'
+    health: 14.0
+    movement-speed: 0.30
+    behaviors: [no_block_damage]
+    creeper:
+      fuse-ticks: 28
+      explosion-radius: 3
+    loot:
+      - {material: GUNPOWDER, amount-min: 2, amount-max: 4, chance: 0.48}
+      - {material: FLINT, amount-min: 1, amount-max: 3, chance: 0.16}
+      - {material: FLINT_AND_STEEL, amount-min: 1, amount-max: 1, chance: 0.035}
+
+  creeper_big:
+    type: CREEPER
+    cost: 5
+    count-min: 1
+    count-max: 1
+    name: '&cBig Creeper'
+    health: 18.0
+    movement-speed: 0.24
+    behaviors: [no_block_damage]
+    creeper:
+      fuse-ticks: 35
+      explosion-radius: 5
+    loot:
+      - {material: GUNPOWDER, amount-min: 3, amount-max: 7, chance: 0.55}
+      - {material: TNT, amount-min: 1, amount-max: 1, chance: 0.035}
+      - {material: FLINT_AND_STEEL, amount-min: 1, amount-max: 1, chance: 0.05}
+
+  assassin:
+    type: ZOMBIE
+    cost: 4
+    count-min: 1
+    count-max: 1
+    name: '&8Assassin'
+    health: 12.0
+    attack-damage: 3.5
+    movement-speed: 0.34
+    baby: true
+    behaviors: [assassin_cloak]
+    poison-on-hit:
+      seconds: 4
+      amplifier: 0
+    invisibility-on-target-seconds: 5
+    loot:
+      - {material: SPIDER_EYE, amount-min: 1, amount-max: 2, chance: 0.30}
+      - {material: GLOWSTONE_DUST, amount-min: 1, amount-max: 3, chance: 0.18}
+      - {material: PHANTOM_MEMBRANE, amount-min: 1, amount-max: 1, chance: 0.06}
+
+  guard:
+    type: PILLAGER
+    cost: 3
+    count-min: 1
+    count-max: 1
+    gear-profile: crossbow
+    name: '&9Guard'
+    health: 24.0
+    follow-range: 44.0
+    loot:
+      - {material: EMERALD, amount-min: 1, amount-max: 2, chance: 0.20}
+      - {material: ARROW, amount-min: 4, amount-max: 12, chance: 0.34}
+      - {material: IRON_NUGGET, amount-min: 2, amount-max: 5, chance: 0.24}
+
+  elite_piglin_brute:
+    type: PIGLIN_BRUTE
+    cost: 8
+    count-min: 1
+    count-max: 1
+    gear-profile: brute_gold
+    name: '&6Elite Brute'
+    immune-to-zombification: true
+    persistent: true
+    loot:
+      - {material: GOLD_INGOT, amount-min: 2, amount-max: 5, chance: 0.42}
+      - {material: GOLDEN_CARROT, amount-min: 2, amount-max: 5, chance: 0.18}
+      - {material: NETHERITE_SCRAP, amount-min: 1, amount-max: 1, chance: 0.035}
+
+  beast_ravager:
+    type: RAVAGER
+    cost: 9
+    count-min: 1
+    count-max: 1
+    name: '&4War Beast'
+    loot:
+      - {material: LEATHER, amount-min: 3, amount-max: 8, chance: 0.55}
+      - {material: BEEF, amount-min: 2, amount-max: 6, chance: 0.35}
+      - {material: LEATHER_HORSE_ARMOR, amount-min: 1, amount-max: 1, chance: 0.07}
+      - {material: IRON_HORSE_ARMOR, amount-min: 1, amount-max: 1, chance: 0.025}
+
+  beast_hoglin:
+    type: HOGLIN
+    cost: 8
+    count-min: 1
+    count-max: 1
+    name: '&cHoglin Beast'
+    immune-to-zombification: true
+    health: 54.0
+    attack-damage: 8.0
+    knockback-resistance: 0.35
+    loot:
+      - {material: PORKCHOP, amount-min: 2, amount-max: 6, chance: 0.48}
+      - {material: LEATHER, amount-min: 1, amount-max: 4, chance: 0.28}
+      - {material: GOLD_NUGGET, amount-min: 4, amount-max: 12, chance: 0.24}
+
+  husar:
+    type: ZOMBIE
+    cost: 4
+    count-min: 1
+    count-max: 1
+    gear-profile: spear_light
+    name: '&eHusar'
+    health: 16.0
+    attack-damage: 5.5
+    movement-speed: 0.35
+    loot:
+      - {material: IRON_NUGGET, amount-min: 2, amount-max: 5, chance: 0.28}
+      - {material: COPPER_INGOT, amount-min: 1, amount-max: 3, chance: 0.22}
+      - {material: FEATHER, amount-min: 1, amount-max: 2, chance: 0.14}
+      - {material: SUGAR, amount-min: 1, amount-max: 3, chance: 0.12}
+
+  killer_bunny:
+    type: RABBIT
+    cost: 3
+    count-min: 1
+    count-max: 1
+    name: '&cKiller Bunny'
+    health: 14.0
+    attack-damage: 5.0
+    movement-speed: 0.42
+    rabbit-type: THE_KILLER_BUNNY
+    loot:
+      - {material: RABBIT_HIDE, amount-min: 1, amount-max: 2, chance: 0.34}
+      - {material: RABBIT_FOOT, amount-min: 1, amount-max: 1, chance: 0.12}
+      - {material: GOLDEN_CARROT, amount-min: 1, amount-max: 2, chance: 0.08}
+
+  hunter_skeleton_horse:
+    type: SKELETON
+    mount:
+      type: SKELETON_HORSE
+    cost: 8
+    count-min: 1
+    count-max: 1
+    gear-profile: archer
+    name: '&bMounted Hunter'
+    health: 24.0
+    follow-range: 70.0
+    behaviors: [hunter_focus]
+    loot:
+      - {material: ARROW, amount-min: 8, amount-max: 18, chance: 0.44}
+      - {material: BONE, amount-min: 2, amount-max: 5, chance: 0.34}
+      - {material: LEATHER_HORSE_ARMOR, amount-min: 1, amount-max: 1, chance: 0.05}
+      - {material: IRON_HORSE_ARMOR, amount-min: 1, amount-max: 1, chance: 0.02}
+      - {material: NAME_TAG, amount-min: 1, amount-max: 1, chance: 0.015}
+
+  hunter_ravager_pillager:
+    type: PILLAGER
+    mount:
+      type: RAVAGER
+    cost: 12
+    count-min: 1
+    count-max: 1
+    gear-profile: crossbow
+    name: '&4Ravager Hunter'
+    health: 30.0
+    follow-range: 70.0
+    behaviors: [hunter_focus]
+    loot:
+      - {material: EMERALD, amount-min: 1, amount-max: 4, chance: 0.34}
+      - {material: STRING, amount-min: 2, amount-max: 6, chance: 0.28}
+      - {material: IRON_HORSE_ARMOR, amount-min: 1, amount-max: 1, chance: 0.035}
+      - {material: GOLDEN_HORSE_ARMOR, amount-min: 1, amount-max: 1, chance: 0.02}
+      - {material: DIAMOND_HORSE_ARMOR, amount-min: 1, amount-max: 1, chance: 0.008}
+
+  group_silverfish:
+    type: SILVERFISH
+    cost: 4
+    count-min: 3
+    count-max: 5
+    name: '&7Silverfish Swarm'
+    health: 6.0
+    loot:
+      - {material: FLINT, amount-min: 1, amount-max: 3, chance: 0.20}
+      - {material: COBBLESTONE, amount-min: 1, amount-max: 4, chance: 0.18}
+      - {material: IRON_NUGGET, amount-min: 1, amount-max: 1, chance: 0.04}
+
+  group_endermite:
+    type: ENDERMITE
+    cost: 5
+    count-min: 3
+    count-max: 5
+    name: '&5Endermite Swarm'
+    health: 7.0
+    loot:
+      - {material: AMETHYST_SHARD, amount-min: 1, amount-max: 2, chance: 0.18}
+      - {material: ENDER_PEARL, amount-min: 1, amount-max: 1, chance: 0.035}
+
+  group_vex:
+    type: VEX
+    cost: 8
+    count-min: 2
+    count-max: 3
+    name: '&dVex Swarm'
+    health: 10.0
+    attack-damage: 4.0
+    loot:
+      - {material: GLOWSTONE_DUST, amount-min: 1, amount-max: 4, chance: 0.26}
+      - {material: PHANTOM_MEMBRANE, amount-min: 1, amount-max: 1, chance: 0.08}
+      - {material: EMERALD, amount-min: 1, amount-max: 1, chance: 0.08}
+
+  group_slime:
+    type: SLIME
+    cost: 4
+    count-min: 3
+    count-max: 5
+    name: '&aSlime Cluster'
+    health: 8.0
+    loot:
+      - {material: SLIME_BALL, amount-min: 1, amount-max: 4, chance: 0.45}
+
+  group_magma_cube:
+    type: MAGMA_CUBE
+    cost: 5
+    count-min: 3
+    count-max: 5
+    name: '&6Magma Cluster'
+    health: 9.0
+    loot:
+      - {material: MAGMA_CREAM, amount-min: 1, amount-max: 3, chance: 0.42}
+
+  trader_non_hostile:
+    type: WANDERING_TRADER
+    cost: 3
+    count-min: 1
+    count-max: 1
+    name: '&aLost Trader'
+    health: 30.0
+    persistent: true
+    behaviors: [trader_ambush]
+    trader:
+      ambush-chance: 0.08
+    loot: []
+    trades:
+      - result:
+          material: GOLDEN_CARROT
+          amount: 8
+        ingredients:
+          - material: EMERALD
+            amount: 2
+        max-uses: 8
+      - result:
+          material: ENCHANTED_BOOK
+          amount: 1
+          name: '&bUseful Manual'
+          enchantments: {UNBREAKING: 1}
+        ingredients:
+          - material: EMERALD
+            amount: 12
+          - material: BOOK
+            amount: 1
+        max-uses: 2
+      - result:
+          material: EXPERIENCE_BOTTLE
+          amount: 8
+        ingredients:
+          - material: EMERALD
+            amount: 8
+        max-uses: 4
+      - result:
+          material: POTION
+          amount: 1
+          name: '&6Emergency Strength'
+          potion-effects:
+            - {type: STRENGTH, amplifier: 1, duration-seconds: 45}
+        ingredients:
+          - material: EMERALD
+            amount: 10
+          - material: BLAZE_POWDER
+            amount: 1
+        max-uses: 2
+      - result:
+          material: ENCHANTED_BOOK
+          amount: 1
+          name: '&bMending Manual'
+          enchantments: {MENDING: 1}
+        ingredients:
+          - material: EMERALD
+            amount: 30
+          - material: BOOK
+            amount: 1
+        max-uses: 1
+      - result:
+          material: NETHERITE_UPGRADE_SMITHING_TEMPLATE
+          amount: 1
+        ingredients:
+          - boss-token-id: brute_overlord
+            name: '&4Brute Overlord Token'
+          - material: DIAMOND
+            amount: 4
+        max-uses: 1
+      - result:
+          material: WITHER_SKELETON_SKULL
+          amount: 1
+        ingredients:
+          - boss-token-id: ashen_executioner
+            name: '&8Ashen Executioner Token'
+          - material: COAL_BLOCK
+            amount: 8
+        max-uses: 1
+      - result:
+          material: TRIDENT
+          amount: 1
+        ingredients:
+          - boss-token-id: wounded_warden
+            name: '&1Wounded Warden Token'
+          - material: ECHO_SHARD
+            amount: 8
+        max-uses: 1
+      - result:
+          material: ENCHANTED_GOLDEN_APPLE
+          amount: 1
+        ingredients:
+          - boss-token-id: plague_witch
+            name: '&5Plague Witch Token'
+          - material: GOLD_BLOCK
+            amount: 4
+        max-uses: 1
+      - result:
+          material: TURTLE_HELMET
+          amount: 1
+          name: '&4Horde Crown'
+          enchantments: {PROTECTION: 5}
+        ingredients:
+          - boss-token-id: horde_king
+            name: '&4Horde King Token'
+          - material: DIAMOND
+            amount: 3
+        max-uses: 1
+      - result:
+          material: TOTEM_OF_UNDYING
+          amount: 1
+        ingredients:
+          - boss-token-id: patrol_captain
+            name: '&9Patrol Captain Token'
+          - material: EMERALD_BLOCK
+            amount: 2
+        max-uses: 1
+      - result:
+          material: DRAGON_EGG
+          amount: 1
+        ingredients:
+          - boss-token-id: swarm_mother
+            name: '&5Swarm Mother Token'
+          - material: STRING
+            amount: 32
+        max-uses: 1
+      - result:
+          material: MACE
+          amount: 1
+          enchantments: {WIND_BURST: 4, DENSITY: 5, UNBREAKING: 3}
+        ingredients:
+          - boss-token-id: ultra_creeper
+            name: '&4Ultra Creeper Token'
+          - material: GUNPOWDER
+            amount: 32
+        max-uses: 1
+      - result:
+          material: BOW
+          amount: 1
+          name: '&4Ultra Longbow'
+          enchantments: {POWER: 6, FLAME: 1, PUNCH: 2, INFINITY: 1, MENDING: 1}
+        ingredients:
+          - boss-token-id: ultra_skeleton
+            name: '&4Ultra Skeleton Token'
+          - material: SPECTRAL_ARROW
+            amount: 16
+        max-uses: 1
+      - result:
+          material: NETHERITE_SWORD
+          amount: 1
+          name: '&4Ultra Cleaver'
+          enchantments: {SHARPNESS: 6, SWEEPING_EDGE: 3, LOOTING: 4, UNBREAKING: 3, MENDING: 1}
+        ingredients:
+          - boss-token-id: ultra_zombie
+            name: '&4Ultra Zombie Token'
+          - material: NETHERITE_INGOT
+            amount: 1
+        max-uses: 1
+
+  solo_boss_brute:
+    type: PIGLIN_BRUTE
+    cost: 20
+    count-min: 1
+    count-max: 1
+    name: '&4Brute Overlord'
+    announcement-message: "&7The ground shakes under a tyrant's march. &4The Brute Overlord&7 has arrived."
+    health: 190.0
+    attack-damage: 15.0
+    movement-speed: 0.28
+    armor: 12.0
+    knockback-resistance: 0.65
+    immune-to-zombification: true
+    glowing: true
+    persistent: true
+    boss-token:
+      id: brute_overlord
+      name: '&4Brute Overlord Token'
+    loot:
+      - {material: GOLD_INGOT, amount-min: 8, amount-max: 18, chance: 0.75}
+      - {material: GOLD_BLOCK, amount-min: 1, amount-max: 3, chance: 0.32}
+      - {material: DIAMOND, amount-min: 2, amount-max: 5, chance: 0.42}
+      - {material: NETHERITE_SCRAP, amount-min: 1, amount-max: 2, chance: 0.20}
+
+  solo_boss_wither_skeleton:
+    type: WITHER_SKELETON
+    cost: 20
+    count-min: 1
+    count-max: 1
+    name: '&8Ashen Executioner'
+    announcement-message: '&7Ash falls from a clear sky. &8The Ashen Executioner&7 is nearby.'
+    health: 170.0
+    attack-damage: 14.0
+    movement-speed: 0.30
+    armor: 10.0
+    glowing: true
+    persistent: true
+    equipment:
+      main-hand:
+        material: NETHERITE_SWORD
+        enchantments:
+          SHARPNESS: 2
+    boss-token:
+      id: ashen_executioner
+      name: '&8Ashen Executioner Token'
+    loot:
+      - {material: COAL, amount-min: 8, amount-max: 18, chance: 0.70}
+      - {material: BONE, amount-min: 8, amount-max: 16, chance: 0.55}
+      - {material: WITHER_ROSE, amount-min: 1, amount-max: 3, chance: 0.20}
+      - {material: WITHER_SKELETON_SKULL, amount-min: 1, amount-max: 1, chance: 0.025}
+
+  solo_boss_warden:
+    type: WARDEN
+    cost: 24
+    count-min: 1
+    count-max: 1
+    name: '&1Wounded Warden'
+    announcement-message: '&7The world goes quiet. Something ancient is wounded, not weak.'
+    health: 180.0
+    glowing: true
+    persistent: true
+    boss-token:
+      id: wounded_warden
+      name: '&1Wounded Warden Token'
+    loot:
+      - {material: ECHO_SHARD, amount-min: 2, amount-max: 5, chance: 0.70}
+      - {material: SCULK_CATALYST, amount-min: 1, amount-max: 2, chance: 0.35}
+      - {material: DIAMOND, amount-min: 2, amount-max: 5, chance: 0.38}
+      - {material: EXPERIENCE_BOTTLE, amount-min: 12, amount-max: 24, chance: 0.60}
+
+  solo_boss_witch:
+    type: WITCH
+    cost: 18
+    count-min: 1
+    count-max: 1
+    name: '&5Plague Witch'
+    announcement-message: '&7A bitter smell rides the wind. &5The Plague Witch&7 is brewing death nearby.'
+    health: 150.0
+    movement-speed: 0.33
+    armor: 8.0
+    glowing: true
+    persistent: true
+    poison-on-hit:
+      seconds: 6
+      amplifier: 1
+    boss-token:
+      id: plague_witch
+      name: '&5Plague Witch Token'
+    loot:
+      - {material: GLOWSTONE_DUST, amount-min: 8, amount-max: 18, chance: 0.60}
+      - {material: REDSTONE, amount-min: 8, amount-max: 18, chance: 0.60}
+      - {material: EMERALD, amount-min: 3, amount-max: 8, chance: 0.38}
+      - {material: ENCHANTED_GOLDEN_APPLE, amount-min: 1, amount-max: 1, chance: 0.08}
+
+  horde_king:
+    type: ZOMBIE
+    cost: 16
+    count-min: 1
+    count-max: 1
+    name: '&4Horde King'
+    announcement-message: '&7The &4Horde King&7 raises his banner. Break the horde before it spreads.'
+    health: 160.0
+    attack-damage: 12.0
+    movement-speed: 0.25
+    armor: 10.0
+    knockback-resistance: 0.45
+    glowing: true
+    persistent: true
+    equipment:
+      main-hand:
+        material: DIAMOND_SWORD
+        enchantments:
+          SHARPNESS: 2
+      helmet: DIAMOND_HELMET
+      chestplate: IRON_CHESTPLATE
+    boss-token:
+      id: horde_king
+      name: '&4Horde King Token'
+    loot:
+      - {material: DIAMOND, amount-min: 1, amount-max: 3, chance: 0.45}
+      - {material: IRON_INGOT, amount-min: 8, amount-max: 18, chance: 0.65}
+      - {material: GOLDEN_APPLE, amount-min: 1, amount-max: 2, chance: 0.18}
+      - {material: GOAT_HORN, amount-min: 1, amount-max: 1, chance: 0.12}
+
+  patrol_captain:
+    type: VINDICATOR
+    cost: 14
+    count-min: 1
+    count-max: 1
+    gear-profile: medium_armor
+    name: '&9Patrol Captain'
+    announcement-message: '&7A &9Patrol Captain&7 is calling the march. Cut down the command before it reaches you.'
+    health: 110.0
+    attack-damage: 12.0
+    movement-speed: 0.31
+    armor: 8.0
+    glowing: true
+    persistent: true
+    boss-token:
+      id: patrol_captain
+      name: '&9Patrol Captain Token'
+    loot:
+      - {material: EMERALD, amount-min: 4, amount-max: 10, chance: 0.62}
+      - {material: IRON_INGOT, amount-min: 4, amount-max: 10, chance: 0.45}
+      - material: ENCHANTED_BOOK
+        amount-min: 1
+        amount-max: 1
+        chance: 0.08
+        enchantments: {PIERCING: 3}
+      - {material: GOAT_HORN, amount-min: 1, amount-max: 1, chance: 0.12}
+
+  swarm_mother:
+    type: SPIDER
+    cost: 14
+    count-min: 1
+    count-max: 1
+    name: '&5Swarm Mother'
+    announcement-message: '&7The ground crawls beneath your feet. &5The Swarm Mother&7 is awake.'
+    health: 130.0
+    attack-damage: 8.0
+    movement-speed: 0.32
+    scale: 1.45
+    glowing: true
+    persistent: true
+    boss-token:
+      id: swarm_mother
+      name: '&5Swarm Mother Token'
+    loot:
+      - {material: STRING, amount-min: 12, amount-max: 28, chance: 0.75}
+      - {material: SPIDER_EYE, amount-min: 6, amount-max: 12, chance: 0.55}
+      - {material: FERMENTED_SPIDER_EYE, amount-min: 2, amount-max: 5, chance: 0.28}
+      - {material: EXPERIENCE_BOTTLE, amount-min: 6, amount-max: 14, chance: 0.35}
+      - {material: GOAT_HORN, amount-min: 1, amount-max: 1, chance: 0.12}
+
+  ultra_creeper:
+    type: CREEPER
+    cost: 30
+    count-min: 1
+    count-max: 1
+    name: '&4Ultra Creeper'
+    health: 40.0
+    movement-speed: 0.42
+    glowing: true
+    persistent: true
+    behaviors: [no_block_damage]
+    creeper:
+      fuse-ticks: 12
+      explosion-radius: 7
+      powered: true
+    boss-token:
+      id: ultra_creeper
+      name: '&4Ultra Creeper Token'
+    loot:
+      - {material: NETHERITE_INGOT, amount-min: 1, amount-max: 1, chance: 1.0, world-scaling: false}
+
+  ultra_skeleton:
+    type: SKELETON
+    cost: 30
+    count-min: 1
+    count-max: 1
+    name: '&4Ultra Skeleton'
+    health: 70.0
+    movement-speed: 0.31
+    follow-range: 90.0
+    glowing: true
+    persistent: true
+    equipment:
+      main-hand:
+        material: BOW
+        enchantments:
+          POWER: 5
+          PUNCH: 2
+          FLAME: 1
+          INFINITY: 1
+      helmet: NETHERITE_HELMET
+    boss-token:
+      id: ultra_skeleton
+      name: '&4Ultra Skeleton Token'
+    loot:
+      - {material: NETHERITE_INGOT, amount-min: 1, amount-max: 1, chance: 1.0, world-scaling: false}
+
+  ultra_zombie:
+    type: ZOMBIE
+    cost: 30
+    count-min: 1
+    count-max: 1
+    name: '&4Ultra Zombie'
+    health: 120.0
+    attack-damage: 14.0
+    movement-speed: 0.35
+    armor: 20.0
+    knockback-resistance: 0.65
+    glowing: true
+    persistent: true
+    equipment:
+      main-hand:
+        material: NETHERITE_SWORD
+        enchantments:
+          SHARPNESS: 4
+      helmet: NETHERITE_HELMET
+      chestplate: NETHERITE_CHESTPLATE
+      leggings: NETHERITE_LEGGINGS
+      boots: NETHERITE_BOOTS
+    boss-token:
+      id: ultra_zombie
+      name: '&4Ultra Zombie Token'
+    loot:
+      - {material: NETHERITE_INGOT, amount-min: 1, amount-max: 1, chance: 1.0, world-scaling: false}
+
+events:
+  ambush:
+    enabled: true
+    display-name: 'Ambush'
+    announcement-message: '&7Its a dangerous area to be walking alone. Watch your step.'
+    target-message: '&7Its a dangerous area to be walking alone. Watch your step.'
+    weight: 20
+    scaling: {weight-change-per-stage: -0.004, max-weight-change: 0.08}
+    min-distance: 10
+    max-distance: 24
+    spread-radius: 5
+    announcement-radius: 100
+    budget: {min: 5, max: 9}
+    selection: {add-chance-start: 0.95, add-chance-decay: 0.52, max-picks: 5}
+    pool:
+      - {class: horde_basic, weight: 38}
+      - {class: horde_fast, weight: 18}
+      - {class: horde_armored, weight: 8}
+      - {class: horde_burning, weight: 4}
+      - {class: berserker, weight: 5}
+      - {class: assassin, weight: 4}
+      - {class: husar, weight: 5}
+      - {class: killer_bunny, weight: 2}
+    custom-loot-chance: 0.14
+    loot:
+      - {material: IRON_INGOT, amount-min: 1, amount-max: 3, chance: 0.35}
+      - {material: GOLDEN_CARROT, amount-min: 2, amount-max: 5, chance: 0.18}
+
+  patrol:
+    enabled: true
+    display-name: 'Patrol'
+    announcement-message: '&7A hostile patrol is moving nearby. Stay sharp.'
+    weight: 18
+    scaling: {weight-change-per-stage: 0.002, max-weight-change: 0.06}
+    min-distance: 35
+    max-distance: 75
+    spread-radius: 9
+    announcement-radius: 180
+    budget: {min: 8, max: 15}
+    selection: {add-chance-start: 0.90, add-chance-decay: 0.58, max-picks: 6}
+    pool:
+      - {class: guard, weight: 28}
+      - {class: archer_skeleton, weight: 18}
+      - {class: archer_stray, weight: 10}
+      - {class: horde_armored, weight: 10}
+      - {class: elite_piglin_brute, weight: 2}
+      - {class: medic_witch, weight: 4}
+      - {class: husar, weight: 8}
+    custom-loot-chance: 0.16
+    loot:
+      - {material: EMERALD, amount-min: 1, amount-max: 2, chance: 0.28}
+      - {material: ARROW, amount-min: 8, amount-max: 24, chance: 0.35}
+
+  enemy_camp:
+    enabled: true
+    display-name: 'Enemy Camp'
+    announcement-message: "&7There is a new enemy camp nearby. Don't let them roam."
+    weight: 14
+    scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
+    min-distance: 90
+    max-distance: 160
+    spread-radius: 14
+    announcement-radius: 300
+    lightning-marker: true
+    required:
+      - {class: elite_piglin_brute, picks-min: 1, picks-max: 1}
+    budget: {min: 16, max: 28}
+    selection: {add-chance-start: 0.92, add-chance-decay: 0.62, max-picks: 9}
+    pool:
+      - {class: guard, weight: 22}
+      - {class: archer_skeleton, weight: 12}
+      - {class: archer_stray, weight: 8}
+      - {class: tank, weight: 7}
+      - {class: shaman_evoker, weight: 4}
+      - {class: medic_witch, weight: 4}
+      - {class: beast_hoglin, weight: 3}
+    custom-loot-chance: 0.32
+    loot:
+      - {material: DIAMOND, amount-min: 1, amount-max: 2, chance: 0.18}
+      - {material: EMERALD, amount-min: 2, amount-max: 5, chance: 0.42}
+
+  solo_boss:
+    enabled: true
+    display-name: 'Solo Boss'
+    weight: 4.2
+    scaling: {weight-change-per-stage: 0.003, max-weight-change: 0.08}
+    min-distance: 55
+    max-distance: 120
+    spread-radius: 3
+    announcement-radius: 260
+    lightning-marker: true
+    budget: {min: 30, max: 30}
+    selection: {add-chance-start: 1.0, add-chance-decay: 0.0, max-picks: 1}
+    pool:
+      - {class: solo_boss_brute, weight: 1}
+      - {class: solo_boss_wither_skeleton, weight: 1}
+      - {class: solo_boss_warden, weight: 1}
+      - {class: solo_boss_witch, weight: 1}
+    custom-loot-chance: 1.0
+    loot:
+      - {material: DIAMOND, amount-min: 2, amount-max: 5, chance: 0.75}
+      - {material: NETHERITE_SCRAP, amount-min: 1, amount-max: 1, chance: 0.18}
+
+  horde_king_party:
+    enabled: true
+    display-name: 'Horde King Party'
+    announcement-message: '&7The &4Horde King&7 rallies a warband near &e{player}&7. &8Marker: {x}, {y}, {z}'
+    weight: 1.5
+    scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
+    min-distance: 35
+    max-distance: 80
+    spread-radius: 10
+    announcement-radius: 220
+    lightning-marker: true
+    required:
+      - {class: horde_king, picks-min: 1, picks-max: 1}
+      - {class: horde_basic, picks-min: 2, picks-max: 4}
+    budget: {min: 10, max: 18}
+    selection: {add-chance-start: 0.85, add-chance-decay: 0.55, max-picks: 6}
+    pool:
+      - {class: horde_fast, weight: 18}
+      - {class: horde_armored, weight: 12}
+      - {class: horde_burning, weight: 4}
+      - {class: shaman_evoker, weight: 3}
+      - {class: necromancer, weight: 2}
+    custom-loot-chance: 0.7
+    loot:
+      - {material: DIAMOND, amount-min: 1, amount-max: 3, chance: 0.45}
+
+  patrol_captain_party:
+    enabled: true
+    display-name: 'Patrol Captain Party'
+    announcement-message: '&7A &9Patrol Captain&7 has formed a strike group near &e{player}&7. &8Marker: {x}, {y}, {z}'
+    weight: 1.5
+    scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
+    min-distance: 35
+    max-distance: 85
+    spread-radius: 9
+    announcement-radius: 220
+    lightning-marker: true
+    required:
+      - {class: patrol_captain, picks-min: 1, picks-max: 1}
+      - {class: guard, picks-min: 2, picks-max: 4}
+    budget: {min: 9, max: 16}
+    selection: {add-chance-start: 0.85, add-chance-decay: 0.55, max-picks: 5}
+    pool:
+      - {class: guard, weight: 20}
+      - {class: archer_skeleton, weight: 10}
+      - {class: archer_stray, weight: 8}
+      - {class: medic_witch, weight: 4}
+    custom-loot-chance: 0.7
+    loot:
+      - {material: EMERALD, amount-min: 3, amount-max: 7, chance: 0.55}
+
+  swarm_mother_party:
+    enabled: true
+    display-name: 'Swarm Mother Party'
+    announcement-message: '&7The &5Swarm Mother&7 stirs nearby. &8Marker: {x}, {y}, {z}'
+    weight: 1.5
+    scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
+    min-distance: 30
+    max-distance: 75
+    spread-radius: 12
+    announcement-radius: 220
+    lightning-marker: true
+    required:
+      - {class: swarm_mother, picks-min: 1, picks-max: 1}
+      - {class: group_silverfish, picks-min: 1, picks-max: 1}
+    budget: {min: 8, max: 14}
+    selection: {add-chance-start: 0.88, add-chance-decay: 0.52, max-picks: 5}
+    pool:
+      - {class: group_silverfish, weight: 14}
+      - {class: group_endermite, weight: 8}
+      - {class: group_vex, weight: 2}
+      - {class: group_slime, weight: 5}
+    custom-loot-chance: 0.55
+    loot:
+      - {material: STRING, amount-min: 8, amount-max: 18, chance: 0.7}
+      - {material: SPIDER_EYE, amount-min: 3, amount-max: 7, chance: 0.55}
+
+  hunter_event:
+    enabled: true
+    display-name: 'Hunter Event'
+    announcement-message: '&7There is a hunt happening nearby. Today you are not the prey'
+    target-message: '&cYou are being hunted. Run.'
+    weight: 9
+    scaling: {weight-change-per-stage: 0.002, max-weight-change: 0.06}
+    min-distance: 25
+    max-distance: 65
+    spread-radius: 4
+    announcement-radius: 150
+    budget: {min: 8, max: 20}
+    selection: {add-chance-start: 1.0, add-chance-decay: 0.35, max-picks: 2}
+    pool:
+      - {class: hunter_skeleton_horse, weight: 3}
+      - {class: hunter_ravager_pillager, weight: 1}
+    custom-loot-chance: 0.22
+    loot:
+      - {material: SADDLE, amount-min: 1, amount-max: 1, chance: 0.10}
+      - {material: EMERALD, amount-min: 1, amount-max: 3, chance: 0.28}
+
+  cursed_ritual:
+    enabled: true
+    display-name: 'Cursed Ritual'
+    announcement-message: '&7You hear a loud chanting in the distance. Better check it out.'
+    weight: 8
+    scaling: {weight-change-per-stage: 0.003, max-weight-change: 0.08}
+    min-distance: 65
+    max-distance: 130
+    spread-radius: 9
+    announcement-radius: 300
+    lightning-marker: true
+    required:
+      - {class: shaman_evoker, picks-min: 1, picks-max: 1}
+      - {class: horde_armored, picks-min: 1, picks-max: 2}
+    budget: {min: 8, max: 16}
+    selection: {add-chance-start: 0.82, add-chance-decay: 0.55, max-picks: 5}
+    pool:
+      - {class: necromancer, weight: 3}
+      - {class: medic_witch, weight: 3}
+      - {class: support_shulker, weight: 2}
+      - {class: group_vex, weight: 1}
+    custom-loot-chance: 0.32
+    loot:
+      - {material: EXPERIENCE_BOTTLE, amount-min: 4, amount-max: 10, chance: 0.45}
+      - {material: AMETHYST_SHARD, amount-min: 3, amount-max: 8, chance: 0.40}
+
+  loot_event:
+    enabled: true
+    display-name: 'Lost Trader'
+    announcement-message: '&7A lost trader wandered nearby. Not every stranger is a threat.'
+    weight: 7
+    scaling: {weight-change-per-stage: 0.0, max-weight-change: 0.0}
+    min-distance: 20
+    max-distance: 55
+    spread-radius: 3
+    announcement-radius: 120
+    required:
+      - {class: trader_non_hostile, picks-min: 1, picks-max: 1}
+    budget: {min: 0, max: 0}
+    selection: {add-chance-start: 0.0, add-chance-decay: 0.0, max-picks: 0}
+    pool: []
+
+  assassination_attempt:
+    enabled: true
+    display-name: 'Assassination Attempt'
+    announcement-message: ''
+    target-message: '&cBounty has been set on your head. They are coming.'
+    weight: 8
+    scaling: {weight-change-per-stage: 0.0, max-weight-change: 0.0}
+    min-distance: 8
+    max-distance: 20
+    spread-radius: 5
+    announcement-radius: 80
+    required:
+      - {class: assassin, picks-min: 2, picks-max: 3}
+    budget: {min: 2, max: 5}
+    selection: {add-chance-start: 0.35, add-chance-decay: 0.25, max-picks: 1}
+    pool:
+      - {class: archer_skeleton, weight: 3}
+      - {class: killer_bunny, weight: 1}
+    custom-loot-chance: 0.18
+    loot:
+      - {material: GLOWSTONE_DUST, amount-min: 2, amount-max: 6, chance: 0.35}
+
+  explosive_ambush:
+    enabled: true
+    display-name: 'Explosive Ambush'
+    announcement-message: '&7Its a dangerous area to be walking alone. Watch your step.'
+    target-message: '&7Its a dangerous area to be walking alone. Watch your step.'
+    weight: 8
+    scaling: {weight-change-per-stage: 0.002, max-weight-change: 0.06}
+    min-distance: 12
+    max-distance: 28
+    spread-radius: 7
+    announcement-radius: 100
+    budget: {min: 9, max: 15}
+    selection: {add-chance-start: 1.0, add-chance-decay: 0.72, max-picks: 5}
+    pool:
+      - {class: creeper_small, weight: 1}
+      - {class: creeper_mid, weight: 1}
+      - {class: creeper_big, weight: 1}
+      - {class: horde_fast, weight: 1}
+      - {class: assassin, weight: 1}
+    custom-loot-chance: 0.12
+    loot:
+      - {material: GUNPOWDER, amount-min: 4, amount-max: 12, chance: 0.65}
+
+  unique_encounter:
+    enabled: true
+    display-name: 'Unique Encounter'
+    announcement-message: "&4It's here. Run."
+    weight: 0.3
+    scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
+    min-distance: 60
+    max-distance: 130
+    spread-radius: 4
+    announcement-radius: 100
+    lightning-marker: true
+    budget: {min: 30, max: 30}
+    selection: {add-chance-start: 1.0, add-chance-decay: 0.0, max-picks: 1}
+    pool:
+      - {class: ultra_creeper, weight: 1}
+      - {class: ultra_skeleton, weight: 1}
+      - {class: ultra_zombie, weight: 1}
+    custom-loot-chance: 1.0
+    loot:
+      - {material: NETHERITE_SCRAP, amount-min: 1, amount-max: 2, chance: 0.35}
+      - {material: DIAMOND, amount-min: 3, amount-max: 7, chance: 0.65}
