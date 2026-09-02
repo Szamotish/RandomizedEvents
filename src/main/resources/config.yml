@@ -10,7 +10,7 @@ settings:
   despawn:
     when-no-players-nearby:
       enabled: true
-      radius: 96
+      radius: 200
       delay-seconds: 180
     target-bound-when-target-unavailable:
       enabled: true
@@ -848,7 +848,9 @@ mob-classes:
     behaviors: [trader_ambush]
     trader:
       ambush-chance: 0.08
-    loot: []
+    loot:
+      - {material: GHAST_TEAR, amount-min: 1, amount-max: 1, chance: 1.0, world-scaling: false}
+      - {material: EMERALD, amount-min: 1, amount-max: 1, chance: 1.0, world-scaling: false}
     trades:
       - result:
           material: GOLDEN_CARROT

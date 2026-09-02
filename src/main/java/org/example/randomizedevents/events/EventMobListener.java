@@ -1,15 +1,22 @@
 package org.example.randomizedevents.events;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.WanderingTrader;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
@@ -19,8 +26,13 @@ import org.example.randomizedevents.config.MobDefinition;
 import org.example.randomizedevents.loot.LootService;
 import org.example.randomizedevents.mobs.EventMobRegistry;
 import org.example.randomizedevents.spawn.EventSpawner;
+import org.example.randomizedevents.spawn.SpawnResult;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -33,6 +45,10 @@ public final class EventMobListener implements Listener {
     private final EventSpawner spawner;
     private final Random random = new Random();
     private final Set<UUID> triggeredTraderAmbushes = new HashSet<>();
+    private final Map<String, TraderAmbush> activeTraderAmbushes = new HashMap<>();
+
+    private static final String TRADER_AMBUSH_TARGET_MESSAGE = "The trader has sold you out! The enemy is close.";
+    private static final int TRADER_AMBUSH_EMERALD_DISCOUNT = 10;
 
     public EventMobListener(EventConfigManager config, EventMobRegistry mobRegistry, LootService lootService, EventSpawner spawner) {
         this.config = config;
@@ -53,19 +69,15 @@ public final class EventMobListener implements Listener {
             event.setDroppedExp(0);
         }
 
-        if (mobRegistry.hasBehavior(entity, "no_custom_loot")) {
-            return;
-        }
-
         String eventId = mobRegistry.getEventId(entity);
-        if (eventId == null) {
-            return;
+        if (eventId != null && !mobRegistry.hasBehavior(entity, "no_custom_loot")) {
+            EventDefinition definition = config.getEvent(eventId);
+            if (definition != null) {
+                lootService.dropCustomLoot(entity, definition);
+            }
         }
 
-        EventDefinition definition = config.getEvent(eventId);
-        if (definition != null) {
-            lootService.dropCustomLoot(entity, definition);
-        }
+        completeTraderAmbushIfCleared(entity);
     }
 
     @EventHandler
@@ -192,7 +204,77 @@ public final class EventMobListener implements Listener {
             return;
         }
 
-        triggeredTraderAmbushes.add(trader.getUniqueId());
-        spawner.spawnEvent(config.getEvent("ambush"), event.getPlayer());
+        SpawnResult result = spawner.spawnEvent("ambush", event.getPlayer(), TRADER_AMBUSH_TARGET_MESSAGE);
+        if (result.success()) {
+            triggeredTraderAmbushes.add(trader.getUniqueId());
+            activeTraderAmbushes.put(result.eventInstanceId(), new TraderAmbush(
+                    trader.getUniqueId(),
+                    event.getPlayer().getUniqueId(),
+                    result.eventInstanceId()
+            ));
+        }
+    }
+
+    @EventHandler
+    public void onTraderAmbushTargetDeath(PlayerDeathEvent event) {
+        UUID targetId = event.getEntity().getUniqueId();
+        for (TraderAmbush ambush : List.copyOf(activeTraderAmbushes.values())) {
+            if (!ambush.targetId().equals(targetId)) {
+                continue;
+            }
+
+            activeTraderAmbushes.remove(ambush.eventInstanceId());
+            if (mobRegistry.countEventMobsByInstanceId(ambush.eventInstanceId(), null) <= 0) {
+                continue;
+            }
+            mobRegistry.removeEventMobsByInstanceId(ambush.eventInstanceId());
+            removeTrader(ambush.traderId());
+        }
+    }
+
+    private void completeTraderAmbushIfCleared(LivingEntity deadEntity) {
+        String eventInstanceId = mobRegistry.getEventInstanceId(deadEntity);
+        TraderAmbush ambush = activeTraderAmbushes.get(eventInstanceId);
+        if (ambush == null) {
+            return;
+        }
+        if (mobRegistry.countEventMobsByInstanceId(eventInstanceId, deadEntity.getUniqueId()) > 0) {
+            return;
+        }
+
+        activeTraderAmbushes.remove(eventInstanceId);
+        applyTraderAmbushDiscount(ambush.traderId());
+    }
+
+    private void applyTraderAmbushDiscount(UUID traderId) {
+        Entity entity = Bukkit.getEntity(traderId);
+        if (!(entity instanceof WanderingTrader trader) || trader.isDead()) {
+            return;
+        }
+
+        List<MerchantRecipe> recipes = new ArrayList<>(trader.getRecipes());
+        for (MerchantRecipe recipe : recipes) {
+            List<ItemStack> ingredients = recipe.getIngredients();
+            if (ingredients.isEmpty() || ingredients.get(0).getType() != Material.EMERALD) {
+                continue;
+            }
+
+            int discount = Math.min(TRADER_AMBUSH_EMERALD_DISCOUNT, Math.max(0, ingredients.get(0).getAmount() - 1));
+            if (discount > 0) {
+                recipe.setSpecialPrice(Math.min(recipe.getSpecialPrice(), -discount));
+            }
+        }
+        trader.setRecipes(recipes);
+    }
+
+    private void removeTrader(UUID traderId) {
+        Entity entity = Bukkit.getEntity(traderId);
+        if (entity != null) {
+            triggeredTraderAmbushes.remove(traderId);
+            entity.remove();
+        }
+    }
+
+    private record TraderAmbush(UUID traderId, UUID targetId, String eventInstanceId) {
     }
 }

@@ -9,6 +9,8 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.UUID;
+
 public final class EventMobRegistry {
 
     private final NamespacedKey eventMobKey;
@@ -149,5 +151,24 @@ public final class EventMobRegistry {
             }
         }
         return removed;
+    }
+
+    public int countEventMobsByInstanceId(String eventInstanceId, UUID excludedEntityId) {
+        if (eventInstanceId == null || eventInstanceId.isBlank()) {
+            return 0;
+        }
+
+        int count = 0;
+        for (World world : Bukkit.getWorlds()) {
+            for (LivingEntity entity : world.getLivingEntities()) {
+                if ((excludedEntityId == null || !excludedEntityId.equals(entity.getUniqueId()))
+                        && !entity.isDead()
+                        && isEventMob(entity)
+                        && eventInstanceId.equals(getEventInstanceId(entity))) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }

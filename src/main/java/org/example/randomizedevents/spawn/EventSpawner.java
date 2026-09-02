@@ -97,6 +97,10 @@ public final class EventSpawner {
     }
 
     public SpawnResult spawnEvent(String eventId, Player target) {
+        return spawnEvent(eventId, target, null);
+    }
+
+    public SpawnResult spawnEvent(String eventId, Player target, String targetMessageOverride) {
         EventDefinition event = config.getEvent(eventId);
         if (event == null || !event.enabled()) {
             return SpawnResult.failed("Event is missing or disabled: " + eventId);
@@ -104,10 +108,14 @@ public final class EventSpawner {
         if (target == null || !target.isOnline() || target.isDead()) {
             return SpawnResult.failed("Target player is not valid.");
         }
-        return spawnEvent(event, target);
+        return spawnEvent(event, target, targetMessageOverride);
     }
 
     public SpawnResult spawnEvent(EventDefinition event, Player target) {
+        return spawnEvent(event, target, null);
+    }
+
+    private SpawnResult spawnEvent(EventDefinition event, Player target, String targetMessageOverride) {
         if (event == null) {
             return SpawnResult.failed("Event is missing.");
         }
@@ -177,9 +185,9 @@ public final class EventSpawner {
         }
 
         registerAnchorEvent(event, center, eventInstanceId);
-        announceEvent(event, target, center, announcementOverride);
+        announceEvent(event, target, center, announcementOverride, targetMessageOverride);
         plugin.getLogger().info("Spawned event '" + event.id() + "' near " + target.getName() + " with " + spawned + " mob(s).");
-        return SpawnResult.success(event, target.getName(), spawned);
+        return SpawnResult.success(event, target.getName(), spawned, eventInstanceId);
     }
 
     public int spawnMobClassAt(MobDefinition mobClass, Location center, int spreadRadius, Player target, String eventId) {
@@ -249,14 +257,18 @@ public final class EventSpawner {
                 && !definition.behaviors().contains("trader_ambush");
     }
 
-    private void announceEvent(EventDefinition event, Player target, Location center, String announcementOverride) {
+    private void announceEvent(EventDefinition event, Player target, Location center, String announcementOverride,
+                               String targetMessageOverride) {
         if (!config.isAnnounceEvents()) {
             return;
         }
 
-        boolean sentTargetMessage = event.targetMessage() != null && !event.targetMessage().isBlank();
+        String targetMessage = targetMessageOverride != null && !targetMessageOverride.isBlank()
+                ? targetMessageOverride
+                : event.targetMessage();
+        boolean sentTargetMessage = targetMessage != null && !targetMessage.isBlank();
         if (sentTargetMessage) {
-            target.sendMessage(formatEventMessage(config.inlineMessage(event.targetMessage()), event, target, center));
+            target.sendMessage(formatEventMessage(config.inlineMessage(targetMessage), event, target, center));
         }
 
         String rawMessage = resolveAnnouncementMessage(event, announcementOverride);
