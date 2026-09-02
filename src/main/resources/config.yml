@@ -85,6 +85,16 @@ anchor-events:
     banner-destroyed-despawn-seconds: 1800
     guard-leash-radius: 28
     guard-awake-radius: 48
+    smoke-marker:
+      enabled: true
+      particle: CAMPFIRE_SIGNAL_SMOKE
+      source-block: CAMPFIRE
+      source-radius: 3
+      height: 22
+      interval-seconds: 3
+      points: 7
+      count: 1
+      spread: 0.35
     sub-events:
       - patrol
       - ambush
@@ -98,6 +108,16 @@ anchor-events:
     banner-destroyed-despawn-seconds: 1800
     guard-leash-radius: 24
     guard-awake-radius: 48
+    smoke-marker:
+      enabled: true
+      particle: SOUL
+      source-block: SOUL_CAMPFIRE
+      source-radius: 3
+      height: 22
+      interval-seconds: 3
+      points: 7
+      count: 1
+      spread: 0.35
     sub-events:
       - patrol
       - ambush

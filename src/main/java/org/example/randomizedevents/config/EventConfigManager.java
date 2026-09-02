@@ -3,6 +3,7 @@ package org.example.randomizedevents.config;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
 import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -307,9 +308,39 @@ public final class EventConfigManager {
                     Math.max(1, section.getInt("banner-destroyed-despawn-seconds", 1800)),
                     Math.max(1, section.getInt("guard-leash-radius", 28)),
                     Math.max(1, section.getInt("guard-awake-radius", 48)),
+                    parseSmokeMarker(section.getConfigurationSection("smoke-marker"), id),
                     List.copyOf(subEvents)
             ));
         }
+    }
+
+    private AnchorSmokeMarkerDefinition parseSmokeMarker(ConfigurationSection section, String anchorId) {
+        if (section == null || !section.getBoolean("enabled", false)) {
+            return new AnchorSmokeMarkerDefinition(false, Particle.CAMPFIRE_SIGNAL_SMOKE, null, 0, 0, 0, 0, 0, 0.0);
+        }
+
+        Particle particle = parseEnum(Particle.class, section.getString("particle", "CAMPFIRE_SIGNAL_SMOKE"));
+        if (particle == null) {
+            plugin.getLogger().warning("Invalid smoke marker particle for anchor event '" + anchorId + "'.");
+            particle = Particle.CAMPFIRE_SIGNAL_SMOKE;
+        }
+        Material sourceBlock = parseEnum(Material.class, section.getString("source-block", null));
+        if (sourceBlock != null && sourceBlock != Material.CAMPFIRE && sourceBlock != Material.SOUL_CAMPFIRE) {
+            plugin.getLogger().warning("Invalid smoke marker source block for anchor event '" + anchorId + "'.");
+            sourceBlock = null;
+        }
+
+        return new AnchorSmokeMarkerDefinition(
+                true,
+                particle,
+                sourceBlock,
+                Math.max(0, section.getInt("source-radius", 3)),
+                Math.max(1, section.getInt("height", 22)),
+                Math.max(1, section.getInt("interval-seconds", 3)),
+                Math.max(1, section.getInt("points", 7)),
+                Math.max(1, section.getInt("count", 1)),
+                Math.max(0.0, section.getDouble("spread", 0.35))
+        );
     }
 
     private EventDefinition parseEvent(String id, ConfigurationSection section) {

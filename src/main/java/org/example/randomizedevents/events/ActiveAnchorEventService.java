@@ -18,6 +18,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.example.randomizedevents.config.AnchorEventDefinition;
+import org.example.randomizedevents.config.AnchorSmokeMarkerDefinition;
 import org.example.randomizedevents.config.EventConfigManager;
 import org.example.randomizedevents.config.EventDefinition;
 import org.example.randomizedevents.mobs.EventMobRegistry;
@@ -26,6 +27,8 @@ import org.example.randomizedevents.spawn.SpawnResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +43,7 @@ public final class ActiveAnchorEventService implements Listener {
     private final EventSpawner spawner;
     private final Random random = new Random();
     private final Map<String, ActiveAnchorEvent> activeEvents = new HashMap<>();
+    private final Map<String, Long> nextSmokeMarkerAt = new HashMap<>();
     private final File file;
 
     private BukkitTask task;
@@ -67,18 +71,22 @@ public final class ActiveAnchorEventService implements Listener {
 
     public void removeAllBanners() {
         for (ActiveAnchorEvent activeEvent : activeEvents.values()) {
+            removeSmokeSource(activeEvent);
             removeBanner(activeEvent);
         }
         activeEvents.clear();
+        nextSmokeMarkerAt.clear();
         save();
     }
 
     public int removeAllActiveEvents() {
         int removed = activeEvents.size();
         for (ActiveAnchorEvent activeEvent : List.copyOf(activeEvents.values())) {
+            removeSmokeSource(activeEvent);
             removeBanner(activeEvent);
             mobRegistry.removeEventMobsByInstanceId(activeEvent.eventInstanceId());
             activeEvents.remove(activeEvent.eventInstanceId());
+            nextSmokeMarkerAt.remove(activeEvent.eventInstanceId());
         }
         save();
         return removed;
@@ -96,11 +104,13 @@ public final class ActiveAnchorEventService implements Listener {
             return false;
         }
 
+        Location smokeSourceLocation = placeSmokeSource(bannerLocation, anchor.smokeMarker());
         long now = System.currentTimeMillis();
         activeEvents.put(eventInstanceId, new ActiveAnchorEvent(
                 event.id(),
                 eventInstanceId,
                 bannerLocation,
+                smokeSourceLocation,
                 now + anchor.subEventIntervalSeconds() * 1000L,
                 0L,
                 0L
@@ -154,10 +164,111 @@ public final class ActiveAnchorEventService implements Listener {
                     save();
                     continue;
                 }
+                tickSmokeMarker(activeEvent, anchor, now);
                 tickSubEvents(activeEvent, anchor, now);
                 leashSleepingGuards(activeEvent, anchor);
             }
         }
+    }
+
+    private void tickSmokeMarker(ActiveAnchorEvent activeEvent, AnchorEventDefinition anchor, long now) {
+        AnchorSmokeMarkerDefinition marker = anchor.smokeMarker();
+        if (marker == null || !marker.enabled()) {
+            nextSmokeMarkerAt.remove(activeEvent.eventInstanceId());
+            return;
+        }
+        long nextAt = nextSmokeMarkerAt.getOrDefault(activeEvent.eventInstanceId(), 0L);
+        if (now < nextAt) {
+            return;
+        }
+
+        Location sourceLocation = activeEvent.smokeSourceLocation();
+        if (!isSmokeSourceStillPresent(sourceLocation, marker)) {
+            sourceLocation = placeSmokeSource(activeEvent.bannerLocation(), marker);
+            activeEvents.put(activeEvent.eventInstanceId(), activeEvent.withSmokeSourceLocation(sourceLocation));
+            save();
+        }
+        spawnSmokeMarker(sourceLocation == null ? activeEvent.bannerLocation() : sourceLocation, marker);
+        nextSmokeMarkerAt.put(activeEvent.eventInstanceId(), now + marker.intervalSeconds() * 1000L);
+    }
+
+    private void spawnSmokeMarker(Location sourceLocation, AnchorSmokeMarkerDefinition marker) {
+        World world = sourceLocation.getWorld();
+        if (world == null) {
+            return;
+        }
+
+        int points = Math.max(1, marker.points());
+        for (int i = 0; i < points; i++) {
+            double progress = points == 1 ? 1.0 : (double) i / (points - 1);
+            double y = 1.0 + progress * Math.max(1, marker.height() - 1);
+            Location location = sourceLocation.clone().add(
+                    0.5 + randomOffset(marker.spread()),
+                    y,
+                    0.5 + randomOffset(marker.spread())
+            );
+            world.spawnParticle(marker.particle(), location, marker.count(), marker.spread(), 0.08, marker.spread(), 0.01);
+        }
+    }
+
+    private double randomOffset(double spread) {
+        if (spread <= 0.0) {
+            return 0.0;
+        }
+        return (random.nextDouble() * 2.0 - 1.0) * spread;
+    }
+
+    private Location placeSmokeSource(Location bannerLocation, AnchorSmokeMarkerDefinition marker) {
+        if (marker == null || !marker.enabled() || marker.sourceBlock() == null || marker.sourceRadius() <= 0) {
+            return null;
+        }
+        World world = bannerLocation.getWorld();
+        if (world == null) {
+            return null;
+        }
+
+        List<Location> candidates = new ArrayList<>();
+        int radius = marker.sourceRadius();
+        int radiusSquared = radius * radius;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                if ((dx == 0 && dz == 0) || dx * dx + dz * dz > radiusSquared) {
+                    continue;
+                }
+                candidates.add(new Location(world, bannerLocation.getBlockX() + dx, bannerLocation.getBlockY(),
+                        bannerLocation.getBlockZ() + dz));
+            }
+        }
+        Collections.shuffle(candidates, random);
+
+        for (Location candidate : candidates) {
+            Location sourceLocation = findSmokeSourceLocation(world, candidate.getBlockX(), candidate.getBlockZ());
+            if (sourceLocation == null || sameBlock(sourceLocation, bannerLocation)) {
+                continue;
+            }
+            Block source = sourceLocation.getBlock();
+            source.setType(marker.sourceBlock(), false);
+            return sourceLocation;
+        }
+        plugin.getLogger().warning("Could not place smoke marker source near anchor event '" + bannerLocation + "'.");
+        return null;
+    }
+
+    private Location findSmokeSourceLocation(World world, int x, int z) {
+        Block topBlock = world.getHighestBlockAt(x, z);
+        Block ground = topBlock.getRelative(0, -1, 0);
+        Block source = ground.getRelative(0, 1, 0);
+        if (!ground.getType().isSolid() || !source.getType().isAir()) {
+            return null;
+        }
+        return source.getLocation();
+    }
+
+    private boolean isSmokeSourceStillPresent(Location location, AnchorSmokeMarkerDefinition marker) {
+        return location != null
+                && marker != null
+                && marker.sourceBlock() != null
+                && location.getBlock().getType() == marker.sourceBlock();
     }
 
     private void tickSubEvents(ActiveAnchorEvent activeEvent, AnchorEventDefinition anchor, long now) {
@@ -278,9 +389,11 @@ public final class ActiveAnchorEventService implements Listener {
     }
 
     private void removeActiveEvent(ActiveAnchorEvent activeEvent) {
+        removeSmokeSource(activeEvent);
         removeBanner(activeEvent);
         int removed = mobRegistry.removeEventMobsByInstanceId(activeEvent.eventInstanceId());
         activeEvents.remove(activeEvent.eventInstanceId());
+        nextSmokeMarkerAt.remove(activeEvent.eventInstanceId());
         save();
         plugin.getLogger().info("Removed anchor event '" + activeEvent.eventId() + "' with " + removed + " mob(s).");
     }
@@ -288,6 +401,17 @@ public final class ActiveAnchorEventService implements Listener {
     private void removeBanner(ActiveAnchorEvent activeEvent) {
         Block block = activeEvent.bannerLocation().getBlock();
         if (block.getType().name().endsWith("_BANNER")) {
+            block.setType(Material.AIR, false);
+        }
+    }
+
+    private void removeSmokeSource(ActiveAnchorEvent activeEvent) {
+        Location location = activeEvent.smokeSourceLocation();
+        if (location == null) {
+            return;
+        }
+        Block block = location.getBlock();
+        if (block.getType() == Material.CAMPFIRE || block.getType() == Material.SOUL_CAMPFIRE) {
             block.setType(Material.AIR, false);
         }
     }
@@ -325,6 +449,7 @@ public final class ActiveAnchorEventService implements Listener {
                     eventId,
                     eventInstanceId,
                     bannerLocation,
+                    loadSmokeSourceLocation(eventSection, world),
                     eventSection.getLong("next-sub-event-at"),
                     eventSection.getLong("no-target-since"),
                     eventSection.getLong("cleanup-at")
@@ -342,6 +467,12 @@ public final class ActiveAnchorEventService implements Listener {
             data.set(path + ".x", location.getBlockX());
             data.set(path + ".y", location.getBlockY());
             data.set(path + ".z", location.getBlockZ());
+            Location smokeSourceLocation = activeEvent.smokeSourceLocation();
+            if (smokeSourceLocation != null) {
+                data.set(path + ".smoke-source.x", smokeSourceLocation.getBlockX());
+                data.set(path + ".smoke-source.y", smokeSourceLocation.getBlockY());
+                data.set(path + ".smoke-source.z", smokeSourceLocation.getBlockZ());
+            }
             data.set(path + ".next-sub-event-at", activeEvent.nextSubEventAt());
             data.set(path + ".no-target-since", activeEvent.noTargetSince());
             data.set(path + ".cleanup-at", activeEvent.cleanupAt());
@@ -354,10 +485,24 @@ public final class ActiveAnchorEventService implements Listener {
         }
     }
 
+    private Location loadSmokeSourceLocation(ConfigurationSection eventSection, World world) {
+        ConfigurationSection sourceSection = eventSection.getConfigurationSection("smoke-source");
+        if (sourceSection == null) {
+            return null;
+        }
+        return new Location(
+                world,
+                sourceSection.getInt("x"),
+                sourceSection.getInt("y"),
+                sourceSection.getInt("z")
+        );
+    }
+
     private record ActiveAnchorEvent(
             String eventId,
             String eventInstanceId,
             Location bannerLocation,
+            Location smokeSourceLocation,
             long nextSubEventAt,
             long noTargetSince,
             long cleanupAt
@@ -366,16 +511,20 @@ public final class ActiveAnchorEventService implements Listener {
             return cleanupAt > 0L;
         }
 
+        ActiveAnchorEvent withSmokeSourceLocation(Location value) {
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, value, nextSubEventAt, noTargetSince, cleanupAt);
+        }
+
         ActiveAnchorEvent withNextSubEventAt(long value) {
-            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, value, noTargetSince, cleanupAt);
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, value, noTargetSince, cleanupAt);
         }
 
         ActiveAnchorEvent withNoTargetSince(long value) {
-            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, nextSubEventAt, value, cleanupAt);
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, nextSubEventAt, value, cleanupAt);
         }
 
         ActiveAnchorEvent withBannerDestroyed(long cleanupAt) {
-            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, nextSubEventAt, noTargetSince, cleanupAt);
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, nextSubEventAt, noTargetSince, cleanupAt);
         }
     }
 }

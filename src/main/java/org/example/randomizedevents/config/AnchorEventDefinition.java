@@ -13,6 +13,7 @@ public record AnchorEventDefinition(
         int bannerDestroyedDespawnSeconds,
         int guardLeashRadius,
         int guardAwakeRadius,
+        AnchorSmokeMarkerDefinition smokeMarker,
         List<String> subEvents
 ) {
 }
