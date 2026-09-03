@@ -7,7 +7,7 @@ api-version: '26.2'
 commands:
   randomevents:
     description: Admin tools for RandomizedEvents
-    usage: /randomevents <bossboard|reload|status|start|stop|run|spawnclass|gearstage|setstage|list|cleanup>
+    usage: /randomevents <bossboard|reload|status|start|stop|run|spawnclass|gearstage|setstage|list|bountyshop|cleanup>
     aliases: [revents]
 
 permissions:

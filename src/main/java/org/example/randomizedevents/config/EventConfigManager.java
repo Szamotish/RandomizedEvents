@@ -39,6 +39,7 @@ public final class EventConfigManager {
     private final Map<String, MobDefinition> mobClasses = new HashMap<>();
     private final Map<String, GearProfile> gearProfiles = new HashMap<>();
     private final Map<String, AnchorEventDefinition> anchorEvents = new HashMap<>();
+    private BountyShopDefinition bountyShop;
 
     private boolean enabled;
     private boolean announceEvents;
@@ -180,6 +181,8 @@ public final class EventConfigManager {
 
         anchorEvents.clear();
         loadAnchorEvents();
+
+        bountyShop = loadBountyShop();
     }
 
     private void loadGearProfiles() {
@@ -357,6 +360,12 @@ public final class EventConfigManager {
         String announcementMessage = section.getString("announcement-message");
         String targetMessage = section.getString("target-message");
         boolean lightningMarker = section.getBoolean("lightning-marker", false);
+        SpawnMode spawnMode = parseEnum(SpawnMode.class, section.getString("spawn-mode", "LAND"));
+        if (spawnMode == null) {
+            plugin.getLogger().warning("Invalid spawn mode for event '" + id + "'. Falling back to LAND.");
+            spawnMode = SpawnMode.LAND;
+        }
+        Set<Biome> biomes = parseEventBiomes(section.getStringList("biomes"), id);
         int budgetMin = Math.max(0, section.getInt("budget.min", 3));
         int budgetMax = Math.max(budgetMin, section.getInt("budget.max", budgetMin));
         double addChanceStart = clampChance(section.getDouble("selection.add-chance-start", 0.85));
@@ -370,9 +379,23 @@ public final class EventConfigManager {
 
         return new EventDefinition(eventId, displayName, eventEnabled, weight, weightChangePerWorldStage,
                 maxWeightChange, minDistance, maxDistance,
-                spreadRadius, announcementRadius, announcementMessage, targetMessage, lightningMarker, budgetMin, budgetMax, addChanceStart,
+                spreadRadius, announcementRadius, announcementMessage, targetMessage, lightningMarker, spawnMode, biomes, budgetMin, budgetMax, addChanceStart,
                 addChanceDecay, maxPicks, customLootChance, List.copyOf(required), List.copyOf(pool),
                 List.copyOf(loot));
+    }
+
+    private Set<Biome> parseEventBiomes(List<String> rawBiomes, String eventId) {
+        if (rawBiomes.isEmpty()) {
+            return Set.of();
+        }
+        Set<Biome> biomes = rawBiomes.stream()
+                .map(this::parseBiome)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        if (biomes.size() != rawBiomes.size()) {
+            plugin.getLogger().warning("Event '" + eventId + "' has one or more invalid biome entries.");
+        }
+        return Set.copyOf(biomes);
     }
 
     private List<EventPoolEntry> parsePool(List<Map<?, ?>> rawPool, String eventId, boolean required) {
@@ -393,6 +416,84 @@ public final class EventConfigManager {
             entries.add(new EventPoolEntry(classId, weight, minPicks, maxPicks, costMultiplier));
         }
         return entries;
+    }
+
+    private BountyShopDefinition loadBountyShop() {
+        ConfigurationSection section = plugin.getConfig().getConfigurationSection("bounty-shop");
+        if (section == null || !section.getBoolean("enabled", false)) {
+            return new BountyShopDefinition(false, null, 0, 0, 0, 0, EntityType.WANDERING_TRADER,
+                    "&6Hit Broker", false, Material.EMERALD, List.of());
+        }
+
+        EntityType shopkeeperType = parseEnum(EntityType.class, section.getString("shopkeeper.type", "WANDERING_TRADER"));
+        if (shopkeeperType == null || !shopkeeperType.isSpawnable()) {
+            plugin.getLogger().warning("Invalid bounty shopkeeper type. Falling back to WANDERING_TRADER.");
+            shopkeeperType = EntityType.WANDERING_TRADER;
+        }
+
+        Material fallbackIcon = parseEnum(Material.class, section.getString("currency-fallback-icon", "EMERALD"));
+        if (fallbackIcon == null || fallbackIcon.isAir()) {
+            fallbackIcon = Material.EMERALD;
+        }
+
+        List<BountyOrderDefinition> orders = new ArrayList<>();
+        ConfigurationSection ordersSection = section.getConfigurationSection("orders");
+        if (ordersSection != null) {
+            for (String rawId : ordersSection.getKeys(false)) {
+                ConfigurationSection orderSection = ordersSection.getConfigurationSection(rawId);
+                if (orderSection == null) {
+                    continue;
+                }
+                BountyOrderDefinition order = parseBountyOrder(rawId, orderSection);
+                if (order != null) {
+                    orders.add(order);
+                }
+            }
+        }
+
+        return new BountyShopDefinition(
+                true,
+                section.getString("world", ""),
+                Math.max(1, section.getInt("search-radius", 300)),
+                Math.max(0, section.getInt("arm-delay-seconds", 300)),
+                Math.max(1, section.getInt("retry-interval-seconds", 30)),
+                Math.max(1, section.getInt("max-active-per-target", 2)),
+                shopkeeperType,
+                section.getString("shopkeeper.name", "&6Hit Broker"),
+                section.getBoolean("build-structure", true),
+                fallbackIcon,
+                List.copyOf(orders)
+        );
+    }
+
+    private BountyOrderDefinition parseBountyOrder(String rawId, ConfigurationSection section) {
+        String id = normalizeId(rawId);
+        String eventId = normalizeId(section.getString("event"));
+        if (id == null || eventId == null || !events.containsKey(eventId)) {
+            plugin.getLogger().warning("Bounty order '" + rawId + "' points to an unknown event.");
+            return null;
+        }
+
+        Material icon = parseEnum(Material.class, section.getString("icon", "PAPER"));
+        if (icon == null || icon.isAir()) {
+            icon = Material.PAPER;
+        }
+
+        List<ItemStack> cost = new ArrayList<>();
+        for (Map<?, ?> rawCost : section.getMapList("cost")) {
+            Material material = parseEnum(Material.class, getString(rawCost, "material", null));
+            if (material == null || material.isAir()) {
+                plugin.getLogger().warning("Invalid bounty order cost item in '" + rawId + "'.");
+                continue;
+            }
+            cost.add(new ItemStack(material, Math.max(1, getInt(rawCost, "amount", 1))));
+        }
+        if (cost.isEmpty()) {
+            plugin.getLogger().warning("Bounty order '" + rawId + "' has no valid cost.");
+            return null;
+        }
+
+        return new BountyOrderDefinition(id, section.getString("display-name", rawId), eventId, icon, List.copyOf(cost));
     }
 
     private MobDefinition parseMobClass(String id, ConfigurationSection section) {
@@ -704,8 +805,12 @@ public final class EventConfigManager {
         if (rawValue == null || rawValue.isBlank()) {
             return null;
         }
-        String key = rawValue.toLowerCase(Locale.ROOT).replace('_', '-');
-        return Registry.BIOME.get(NamespacedKey.minecraft(key));
+        String key = rawValue.toLowerCase(Locale.ROOT).replace('-', '_');
+        Biome biome = Registry.BIOME.get(NamespacedKey.minecraft(key));
+        if (biome != null) {
+            return biome;
+        }
+        return Registry.BIOME.get(NamespacedKey.minecraft(key.replace('_', '-')));
     }
 
     private String normalizeId(String value) {
@@ -826,6 +931,10 @@ public final class EventConfigManager {
 
     public GearProfile getGearProfile(String id) {
         return gearProfiles.get(normalizeId(id));
+    }
+
+    public BountyShopDefinition getBountyShop() {
+        return bountyShop;
     }
 
     public AnchorEventDefinition getAnchorEvent(String eventId) {

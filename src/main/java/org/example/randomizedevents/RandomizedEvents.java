@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.example.randomizedevents.commands.RandomEventsCommand;
+import org.example.randomizedevents.bounty.BountyShopService;
 import org.example.randomizedevents.config.EventConfigManager;
 import org.example.randomizedevents.data.BossKillScoreboardService;
 import org.example.randomizedevents.data.BossKillTracker;
@@ -28,6 +29,7 @@ public final class RandomizedEvents extends JavaPlugin {
     private EventScheduler eventScheduler;
     private EventBehaviorService behaviorService;
     private ActiveAnchorEventService activeAnchorEventService;
+    private BountyShopService bountyShopService;
 
     @Override
     public void onEnable() {
@@ -47,13 +49,15 @@ public final class RandomizedEvents extends JavaPlugin {
         this.eventSpawner.setActiveAnchorEventService(activeAnchorEventService);
         this.eventScheduler.setActiveAnchorEventService(activeAnchorEventService);
         this.behaviorService = new EventBehaviorService(this, configManager, mobRegistry, eventSpawner);
+        this.bountyShopService = new BountyShopService(this, configManager, eventSpawner);
 
         Bukkit.getPluginManager().registerEvents(new EventMobListener(configManager, mobRegistry, lootService, eventSpawner), this);
         Bukkit.getPluginManager().registerEvents(bossKillScoreboardService, this);
         Bukkit.getPluginManager().registerEvents(activeAnchorEventService, this);
+        Bukkit.getPluginManager().registerEvents(bountyShopService, this);
 
         RandomEventsCommand command = new RandomEventsCommand(this, configManager, eventScheduler, eventSpawner, mobRegistry,
-                bossKillScoreboardService, bossKillTracker, activeAnchorEventService);
+                bossKillScoreboardService, bossKillTracker, activeAnchorEventService, bountyShopService);
         PluginCommand randomEventsCommand = getCommand("randomevents");
         if (randomEventsCommand != null) {
             randomEventsCommand.setExecutor(command);
@@ -63,6 +67,7 @@ public final class RandomizedEvents extends JavaPlugin {
         eventScheduler.start();
         behaviorService.start();
         activeAnchorEventService.start();
+        bountyShopService.start();
         getLogger().info("RandomizedEvents enabled.");
     }
 
@@ -76,6 +81,9 @@ public final class RandomizedEvents extends JavaPlugin {
         }
         if (activeAnchorEventService != null) {
             activeAnchorEventService.stop();
+        }
+        if (bountyShopService != null) {
+            bountyShopService.stop();
         }
         if (configManager != null && configManager.isCleanupOnDisable()) {
             if (activeAnchorEventService != null) {

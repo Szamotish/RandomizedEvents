@@ -69,6 +69,33 @@ settings:
     min: 1800
     max: 7200
 
+bounty-shop:
+  enabled: true
+  world: ''
+  search-radius: 300
+  arm-delay-seconds: 300
+  retry-interval-seconds: 30
+  max-active-per-target: 2
+  build-structure: true
+  currency-fallback-icon: EMERALD
+  shopkeeper:
+    type: WANDERING_TRADER
+    name: '&6Hit Broker'
+  orders:
+    assassination:
+      display-name: '&8Assassination Contract'
+      event: assassination_attempt
+      icon: IRON_SWORD
+      cost:
+        - {material: EMERALD, amount: 32}
+    hunt:
+      display-name: '&4Hunter Contract'
+      event: hunter_event
+      icon: CROSSBOW
+      cost:
+        - {material: EMERALD, amount: 64}
+        - {material: GHAST_TEAR, amount: 1}
+
 messages:
   prefix: '&8[&cEvents&8]&r '
   event-started: '&7Event &c{event}&7 appeared near &e{player}&7. &8({x}, {y}, {z})'
@@ -513,6 +540,21 @@ mob-classes:
       - {material: SNOWBALL, amount-min: 4, amount-max: 12, chance: 0.22}
       - {material: PACKED_ICE, amount-min: 1, amount-max: 2, chance: 0.08}
 
+  archer_bogged:
+    type: BOGGED
+    cost: 4
+    count-min: 1
+    count-max: 1
+    gear-profile: archer
+    name: '&2Bogged Archer'
+    health: 22.0
+    follow-range: 52.0
+    loot:
+      - {material: ARROW, amount-min: 4, amount-max: 12, chance: 0.42}
+      - {material: BONE, amount-min: 1, amount-max: 3, chance: 0.30}
+      - {material: LILY_PAD, amount-min: 1, amount-max: 2, chance: 0.16}
+      - {material: FERMENTED_SPIDER_EYE, amount-min: 1, amount-max: 1, chance: 0.08}
+
   shaman_evoker:
     type: EVOKER
     cost: 8
@@ -857,6 +899,92 @@ mob-classes:
     loot:
       - {material: MAGMA_CREAM, amount-min: 1, amount-max: 3, chance: 0.42}
 
+  drowned_drifter:
+    type: DROWNED
+    cost: 2
+    count-min: 1
+    count-max: 2
+    name: '&3Drowned Drifter'
+    health: 24.0
+    attack-damage: 4.5
+    movement-speed: 0.24
+    follow-range: 42.0
+    loot:
+      - {material: ROTTEN_FLESH, amount-min: 1, amount-max: 2, chance: 0.42}
+      - {material: KELP, amount-min: 1, amount-max: 3, chance: 0.22}
+      - {material: COPPER_INGOT, amount-min: 1, amount-max: 1, chance: 0.08}
+
+  drowned_depth_guard:
+    type: DROWNED
+    cost: 4
+    count-min: 1
+    count-max: 1
+    name: '&1Depth Guard'
+    health: 42.0
+    attack-damage: 5.5
+    movement-speed: 0.22
+    armor: 6.0
+    follow-range: 46.0
+    equipment:
+      helmet: TURTLE_HELMET
+      chestplate: CHAINMAIL_CHESTPLATE
+    loot:
+      - {material: ROTTEN_FLESH, amount-min: 1, amount-max: 3, chance: 0.38}
+      - {material: PRISMARINE_SHARD, amount-min: 1, amount-max: 3, chance: 0.22}
+      - {material: TURTLE_SCUTE, amount-min: 1, amount-max: 1, chance: 0.05}
+
+  drowned_trident:
+    type: DROWNED
+    cost: 5
+    count-min: 1
+    count-max: 1
+    name: '&bTide Spearman'
+    health: 30.0
+    attack-damage: 6.5
+    movement-speed: 0.27
+    follow-range: 56.0
+    equipment:
+      main-hand:
+        material: TRIDENT
+        enchantments: {IMPALING: 1}
+    loot:
+      - {material: PRISMARINE_SHARD, amount-min: 1, amount-max: 3, chance: 0.30}
+      - {material: COPPER_INGOT, amount-min: 1, amount-max: 2, chance: 0.18}
+      - {material: NAUTILUS_SHELL, amount-min: 1, amount-max: 1, chance: 0.035}
+
+  aquatic_husar:
+    type: DROWNED
+    cost: 6
+    count-min: 1
+    count-max: 1
+    gear-profile: spear_light
+    name: '&3Aquatic Husar'
+    health: 28.0
+    attack-damage: 7.5
+    movement-speed: 0.34
+    follow-range: 64.0
+    equipment:
+      helmet: TURTLE_HELMET
+    loot:
+      - {material: PRISMARINE_CRYSTALS, amount-min: 1, amount-max: 3, chance: 0.28}
+      - {material: COPPER_INGOT, amount-min: 1, amount-max: 3, chance: 0.22}
+      - {material: TRIDENT, amount-min: 1, amount-max: 1, chance: 0.025}
+
+  reef_guardian:
+    type: GUARDIAN
+    cost: 7
+    count-min: 1
+    count-max: 1
+    name: '&bReef Guardian'
+    health: 38.0
+    attack-damage: 6.0
+    movement-speed: 0.28
+    follow-range: 48.0
+    loot:
+      - {material: PRISMARINE_SHARD, amount-min: 2, amount-max: 5, chance: 0.45}
+      - {material: PRISMARINE_CRYSTALS, amount-min: 1, amount-max: 3, chance: 0.30}
+      - {material: COD, amount-min: 1, amount-max: 2, chance: 0.26}
+
   trader_non_hostile:
     type: WANDERING_TRADER
     cost: 3
@@ -946,6 +1074,15 @@ mob-classes:
             name: '&1Wounded Warden Token'
           - material: ECHO_SHARD
             amount: 8
+        max-uses: 1
+      - result:
+          material: CONDUIT
+          amount: 1
+        ingredients:
+          - boss-token-id: abyssal_leviathan
+            name: '&1Abyssal Leviathan Token'
+          - material: PRISMARINE_CRYSTALS
+            amount: 16
         max-uses: 1
       - result:
           material: ENCHANTED_GOLDEN_APPLE
@@ -1191,6 +1328,28 @@ mob-classes:
       - {material: FERMENTED_SPIDER_EYE, amount-min: 2, amount-max: 5, chance: 0.28}
       - {material: EXPERIENCE_BOTTLE, amount-min: 6, amount-max: 14, chance: 0.35}
       - {material: GOAT_HORN, amount-min: 1, amount-max: 1, chance: 0.12}
+
+  abyssal_leviathan:
+    type: ELDER_GUARDIAN
+    cost: 24
+    count-min: 1
+    count-max: 1
+    name: '&1Abyssal Leviathan'
+    announcement-message: '&7The deep water goes still. &1The Abyssal Leviathan&7 is watching.'
+    health: 180.0
+    attack-damage: 10.0
+    armor: 10.0
+    follow-range: 70.0
+    glowing: true
+    persistent: true
+    boss-token:
+      id: abyssal_leviathan
+      name: '&1Abyssal Leviathan Token'
+    loot:
+      - {material: PRISMARINE_SHARD, amount-min: 8, amount-max: 18, chance: 0.72}
+      - {material: PRISMARINE_CRYSTALS, amount-min: 4, amount-max: 10, chance: 0.55}
+      - {material: SPONGE, amount-min: 1, amount-max: 2, chance: 0.28}
+      - {material: HEART_OF_THE_SEA, amount-min: 1, amount-max: 1, chance: 0.08}
 
   ultra_creeper:
     type: CREEPER
@@ -1493,6 +1652,110 @@ events:
     loot:
       - {material: EXPERIENCE_BOTTLE, amount-min: 4, amount-max: 10, chance: 0.45}
       - {material: AMETHYST_SHARD, amount-min: 3, amount-max: 8, chance: 0.40}
+
+  drowned_ambush:
+    enabled: true
+    display-name: 'Drowned Ambush'
+    announcement-message: '&7The water nearby begins to churn.'
+    target-message: '&3You feel something moving under the surface.'
+    weight: 9
+    scaling: {weight-change-per-stage: 0.002, max-weight-change: 0.06}
+    spawn-mode: WATER_SURFACE
+    biomes: [RIVER, FROZEN_RIVER, OCEAN, COLD_OCEAN, FROZEN_OCEAN, LUKEWARM_OCEAN, WARM_OCEAN, DEEP_OCEAN, DEEP_COLD_OCEAN, DEEP_FROZEN_OCEAN, DEEP_LUKEWARM_OCEAN]
+    min-distance: 12
+    max-distance: 32
+    spread-radius: 7
+    announcement-radius: 120
+    budget: {min: 6, max: 11}
+    selection: {add-chance-start: 0.92, add-chance-decay: 0.55, max-picks: 5}
+    pool:
+      - {class: drowned_drifter, weight: 36}
+      - {class: drowned_depth_guard, weight: 12}
+      - {class: drowned_trident, weight: 8}
+      - {class: aquatic_husar, weight: 3}
+    custom-loot-chance: 0.16
+    loot:
+      - {material: KELP, amount-min: 4, amount-max: 10, chance: 0.42}
+      - {material: PRISMARINE_SHARD, amount-min: 1, amount-max: 4, chance: 0.20}
+
+  sunken_patrol:
+    enabled: true
+    display-name: 'Sunken Patrol'
+    announcement-message: '&7Old armor clinks beneath the water nearby.'
+    target-message: '&3The drowned have picked up your trail.'
+    weight: 7
+    scaling: {weight-change-per-stage: 0.003, max-weight-change: 0.08}
+    spawn-mode: UNDERWATER
+    biomes: [OCEAN, COLD_OCEAN, FROZEN_OCEAN, LUKEWARM_OCEAN, WARM_OCEAN, DEEP_OCEAN, DEEP_COLD_OCEAN, DEEP_FROZEN_OCEAN, DEEP_LUKEWARM_OCEAN]
+    min-distance: 30
+    max-distance: 75
+    spread-radius: 12
+    announcement-radius: 180
+    budget: {min: 10, max: 18}
+    selection: {add-chance-start: 0.88, add-chance-decay: 0.58, max-picks: 6}
+    pool:
+      - {class: drowned_depth_guard, weight: 24}
+      - {class: drowned_trident, weight: 16}
+      - {class: reef_guardian, weight: 10}
+      - {class: aquatic_husar, weight: 8}
+      - {class: drowned_drifter, weight: 6}
+    custom-loot-chance: 0.22
+    loot:
+      - {material: PRISMARINE_SHARD, amount-min: 2, amount-max: 6, chance: 0.40}
+      - {material: NAUTILUS_SHELL, amount-min: 1, amount-max: 1, chance: 0.06}
+
+  deep_water_horror:
+    enabled: true
+    display-name: 'Deep Water Horror'
+    announcement-message: '&7The deep water goes still. Something ancient is rising.'
+    target-message: '&1The deep has noticed you.'
+    weight: 1.5
+    scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
+    spawn-mode: UNDERWATER
+    biomes: [DEEP_OCEAN, DEEP_COLD_OCEAN, DEEP_FROZEN_OCEAN, DEEP_LUKEWARM_OCEAN]
+    min-distance: 45
+    max-distance: 95
+    spread-radius: 14
+    announcement-radius: 220
+    required:
+      - {class: abyssal_leviathan, picks-min: 1, picks-max: 1}
+      - {class: drowned_depth_guard, picks-min: 2, picks-max: 3}
+    budget: {min: 10, max: 18}
+    selection: {add-chance-start: 0.86, add-chance-decay: 0.55, max-picks: 5}
+    pool:
+      - {class: reef_guardian, weight: 14}
+      - {class: drowned_trident, weight: 10}
+      - {class: aquatic_husar, weight: 6}
+      - {class: drowned_depth_guard, weight: 8}
+    custom-loot-chance: 0.7
+    loot:
+      - {material: PRISMARINE_CRYSTALS, amount-min: 3, amount-max: 8, chance: 0.55}
+      - {material: SPONGE, amount-min: 1, amount-max: 1, chance: 0.18}
+
+  swamp_ambush:
+    enabled: true
+    display-name: 'Swamp Ambush'
+    announcement-message: '&7Something stirs in the marsh nearby.'
+    target-message: '&2The swamp has noticed you.'
+    weight: 8
+    scaling: {weight-change-per-stage: 0.002, max-weight-change: 0.06}
+    biomes: [SWAMP, MANGROVE_SWAMP]
+    min-distance: 20
+    max-distance: 60
+    spread-radius: 8
+    announcement-radius: 140
+    budget: {min: 7, max: 14}
+    selection: {add-chance-start: 0.9, add-chance-decay: 0.56, max-picks: 5}
+    pool:
+      - {class: archer_bogged, weight: 18}
+      - {class: group_slime, weight: 12}
+      - {class: drowned_drifter, weight: 10}
+      - {class: medic_witch, weight: 4}
+      - {class: shaman_evoker, weight: 2}
+    custom-loot-chance: 0.18
+    loot:
+      - {material: SLIME_BALL, amount-min: 2, amount-max: 6, chance: 0.34}
+      - {material: LILY_PAD, amount-min: 1, amount-max: 4, chance: 0.28}
 
   loot_event:
     enabled: true

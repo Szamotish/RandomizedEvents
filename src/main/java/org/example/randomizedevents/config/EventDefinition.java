@@ -1,6 +1,9 @@
 package org.example.randomizedevents.config;
 
+import org.bukkit.block.Biome;
+
 import java.util.List;
+import java.util.Set;
 
 public record EventDefinition(
         String id,
@@ -16,6 +19,8 @@ public record EventDefinition(
         String announcementMessage,
         String targetMessage,
         boolean lightningMarker,
+        SpawnMode spawnMode,
+        Set<Biome> biomes,
         int budgetMin,
         int budgetMax,
         double addChanceStart,

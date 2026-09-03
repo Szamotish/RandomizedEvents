@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.example.randomizedevents.RandomizedEvents;
+import org.example.randomizedevents.bounty.BountyShopService;
 import org.example.randomizedevents.config.EventConfigManager;
 import org.example.randomizedevents.config.EventDefinition;
 import org.example.randomizedevents.config.MobDefinition;
@@ -35,11 +36,12 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
     private final BossKillScoreboardService bossKillScoreboardService;
     private final BossKillTracker bossKillTracker;
     private final ActiveAnchorEventService activeAnchorEventService;
+    private final BountyShopService bountyShopService;
 
     public RandomEventsCommand(RandomizedEvents plugin, EventConfigManager config, EventScheduler scheduler,
                                EventSpawner spawner, EventMobRegistry mobRegistry,
                                BossKillScoreboardService bossKillScoreboardService, BossKillTracker bossKillTracker,
-                               ActiveAnchorEventService activeAnchorEventService) {
+                               ActiveAnchorEventService activeAnchorEventService, BountyShopService bountyShopService) {
         this.plugin = plugin;
         this.config = config;
         this.scheduler = scheduler;
@@ -48,6 +50,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         this.bossKillScoreboardService = bossKillScoreboardService;
         this.bossKillTracker = bossKillTracker;
         this.activeAnchorEventService = activeAnchorEventService;
+        this.bountyShopService = bountyShopService;
     }
 
     @Override
@@ -78,6 +81,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
             case "gearstage" -> gearStage(sender, args);
             case "setstage" -> setStage(sender, args);
             case "list" -> list(sender, args);
+            case "bountyshop" -> bountyShop(sender, args);
             case "cleanup" -> cleanup(sender);
             default -> {
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand. Use /" + label + " for help.");
@@ -98,6 +102,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         sender.sendMessage(ChatColor.AQUA + "/" + label + " gearstage [player]" + ChatColor.WHITE + " - Show scaling stages");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " setstage <gear|world|both> <stage|auto>" + ChatColor.WHITE + " - Override scaling stage");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " list <events|mobs>" + ChatColor.WHITE + " - List configured ids");
+        sender.sendMessage(ChatColor.AQUA + "/" + label + " bountyshop <status|rebuild|movehere|remove>" + ChatColor.WHITE + " - Manage the Hit Broker");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " cleanup" + ChatColor.WHITE + " - Remove event mobs");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " bossboard [on|off|toggle]" + ChatColor.WHITE + " - Toggle your boss kill board");
     }
@@ -107,6 +112,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         if (config.isCleanupOnReload()) {
             activeAnchorEventService.removeAllActiveEvents();
         }
+        bountyShopService.reload();
         bossKillScoreboardService.refreshAll();
         sender.sendMessage(ChatColor.GREEN + "RandomizedEvents config reloaded.");
     }
@@ -325,6 +331,51 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         sender.sendMessage(ChatColor.GREEN + "Removed " + removed + " event mob(s) and " + anchors + " active anchor event(s).");
     }
 
+    private void bountyShop(CommandSender sender, String[] args) {
+        if (args.length < 2 || "status".equalsIgnoreCase(args[1])) {
+            org.bukkit.Location location = bountyShopService.shopLocation();
+            sender.sendMessage(ChatColor.YELLOW + "Bounty shop status:");
+            sender.sendMessage(ChatColor.GRAY + "Enabled: " + ChatColor.WHITE + config.getBountyShop().enabled());
+            sender.sendMessage(ChatColor.GRAY + "Known players: " + ChatColor.WHITE + bountyShopService.knownPlayerCount());
+            sender.sendMessage(ChatColor.GRAY + "Active contracts: " + ChatColor.WHITE + bountyShopService.activeBountyCount());
+            sender.sendMessage(ChatColor.GRAY + "Shopkeeper spawned: " + ChatColor.WHITE + bountyShopService.hasActiveShopkeeper());
+            sender.sendMessage(ChatColor.GRAY + "Location: " + ChatColor.WHITE + formatLocation(location));
+            return;
+        }
+
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "rebuild" -> {
+                boolean rebuilt = bountyShopService.rebuildShop();
+                sender.sendMessage(rebuilt
+                        ? ChatColor.GREEN + "Bounty shop rebuilt near the configured world spawn."
+                        : ChatColor.RED + "Could not find a valid bounty shop location.");
+            }
+            case "movehere" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ChatColor.RED + "Only a player can move the bounty shop to their location.");
+                    return;
+                }
+                bountyShopService.moveShopHere(player);
+                sender.sendMessage(ChatColor.GREEN + "Bounty shop moved to your location.");
+            }
+            case "remove" -> {
+                bountyShopService.removeShopkeeperAndLocation();
+                sender.sendMessage(ChatColor.YELLOW + "Bounty shopkeeper removed and saved location cleared. It may be regenerated on reload if enabled in config.");
+            }
+            default -> sender.sendMessage(ChatColor.RED + "Usage: /randomevents bountyshop <status|rebuild|movehere|remove>");
+        }
+    }
+
+    private String formatLocation(org.bukkit.Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "none";
+        }
+        return location.getWorld().getName() + " "
+                + location.getBlockX() + ", "
+                + location.getBlockY() + ", "
+                + location.getBlockZ();
+    }
+
     private boolean isPublicSubcommand(String subcommand) {
         return "bossboard".equalsIgnoreCase(subcommand)
                 || "bosskills".equalsIgnoreCase(subcommand)
@@ -336,7 +387,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         if (args.length == 1) {
             List<String> values = new ArrayList<>(List.of("bossboard", "bosskills", "scoreboard"));
             if (sender.hasPermission("randomizedevents.admin")) {
-                values.addAll(List.of("reload", "status", "start", "stop", "run", "spawnclass", "gearstage", "setstage", "list", "cleanup"));
+                values.addAll(List.of("reload", "status", "start", "stop", "run", "spawnclass", "gearstage", "setstage", "list", "bountyshop", "cleanup"));
             }
             return partial(args[0], values);
         }
@@ -373,6 +424,9 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         }
         if (args.length == 2 && "list".equalsIgnoreCase(args[0])) {
             return partial(args[1], List.of("events", "mobs"));
+        }
+        if (args.length == 2 && "bountyshop".equalsIgnoreCase(args[0])) {
+            return partial(args[1], List.of("status", "rebuild", "movehere", "remove"));
         }
         return List.of();
     }

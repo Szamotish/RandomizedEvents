@@ -32,12 +32,14 @@ import org.example.randomizedevents.config.GearProfile;
 import org.example.randomizedevents.config.GearSlotDefinition;
 import org.example.randomizedevents.config.GearStep;
 import org.example.randomizedevents.config.MobDefinition;
+import org.example.randomizedevents.config.SpawnMode;
 import org.example.randomizedevents.config.TradeDefinition;
 import org.example.randomizedevents.events.ActiveAnchorEventService;
 import org.example.randomizedevents.mobs.EventMobRegistry;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -73,13 +75,22 @@ public final class EventSpawner {
             return SpawnResult.failed("No enabled events.");
         }
 
-        Player target = candidates.get(random.nextInt(candidates.size()));
-        EventDefinition event = weightedRandomEvent(enabledEvents, target.getWorld());
-        if (event == null) {
-            return SpawnResult.failed("No event could be selected.");
+        String lastFailure = "No event could be selected.";
+        int attempts = Math.max(8, Math.min(24, candidates.size() * 4));
+        for (int i = 0; i < attempts; i++) {
+            Player target = candidates.get(random.nextInt(candidates.size()));
+            EventDefinition event = weightedRandomEvent(enabledEvents, target.getWorld());
+            if (event == null) {
+                continue;
+            }
+            SpawnResult result = spawnEvent(event, target);
+            if (result.success()) {
+                return result;
+            }
+            lastFailure = result.reason();
         }
 
-        return spawnEvent(event, target);
+        return SpawnResult.failed(lastFailure);
     }
 
     public SpawnResult spawnEvent(String eventId) {
@@ -92,8 +103,16 @@ public final class EventSpawner {
         if (candidates.isEmpty()) {
             return SpawnResult.failed("No valid players online.");
         }
-        Player target = candidates.get(random.nextInt(candidates.size()));
-        return spawnEvent(event, target);
+        Collections.shuffle(candidates, random);
+        String lastFailure = "No valid spawn location.";
+        for (Player target : candidates) {
+            SpawnResult result = spawnEvent(event, target);
+            if (result.success()) {
+                return result;
+            }
+            lastFailure = result.reason();
+        }
+        return SpawnResult.failed(lastFailure);
     }
 
     public SpawnResult spawnEvent(String eventId, Player target) {
@@ -138,7 +157,8 @@ public final class EventSpawner {
             }
             int picks = randomBetween(required.minPicks(), required.maxPicks());
             for (int i = 0; i < picks; i++) {
-                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), target, event.id(), eventInstanceId);
+                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), target, event.id(), eventInstanceId,
+                        event.spawnMode());
                 if (added > 0) {
                     spawned += added;
                     announcementOverride = selectAnnouncementOverride(announcementOverride, mobClass);
@@ -166,7 +186,8 @@ public final class EventSpawner {
                 if (cost > budget) {
                     break;
                 }
-                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), target, event.id(), eventInstanceId);
+                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), target, event.id(), eventInstanceId,
+                        event.spawnMode());
                 if (added > 0) {
                     spawned += added;
                     announcementOverride = selectAnnouncementOverride(announcementOverride, mobClass);
@@ -195,10 +216,15 @@ public final class EventSpawner {
     }
 
     public int spawnMobClassAt(MobDefinition mobClass, Location center, int spreadRadius, Player target, String eventId, String eventInstanceId) {
+        return spawnMobClassAt(mobClass, center, spreadRadius, target, eventId, eventInstanceId, SpawnMode.LAND);
+    }
+
+    public int spawnMobClassAt(MobDefinition mobClass, Location center, int spreadRadius, Player target, String eventId,
+                               String eventInstanceId, SpawnMode spawnMode) {
         int count = scaledMobCount(mobClass, center.getWorld());
         int spawned = 0;
         for (int i = 0; i < count; i++) {
-            Location spawnLocation = findNearbySpawnLocation(center, spreadRadius);
+            Location spawnLocation = findNearbySpawnLocation(center, spreadRadius, spawnMode);
             if (spawnLocation == null) {
                 continue;
             }
@@ -395,27 +421,43 @@ public final class EventSpawner {
             int distance = randomBetween(event.minDistance(), event.maxDistance());
             int x = playerLocation.getBlockX() + (int) Math.round(Math.cos(angle) * distance);
             int z = playerLocation.getBlockZ() + (int) Math.round(Math.sin(angle) * distance);
-            Location candidate = findSurfaceLocation(world, x, z);
-            if (candidate != null && isSpawnAreaAllowed(candidate)) {
+            Location candidate = findSpawnLocation(world, x, z, event.spawnMode());
+            if (candidate != null && isEventBiomeAllowed(candidate, event) && isSpawnAreaAllowed(candidate)) {
                 return candidate;
             }
         }
         return null;
     }
 
+    private boolean isEventBiomeAllowed(Location location, EventDefinition event) {
+        return event.biomes().isEmpty() || event.biomes().contains(location.getBlock().getBiome());
+    }
+
     private Location findNearbySpawnLocation(Location center, int spreadRadius) {
+        return findNearbySpawnLocation(center, spreadRadius, SpawnMode.LAND);
+    }
+
+    private Location findNearbySpawnLocation(Location center, int spreadRadius, SpawnMode spawnMode) {
         if (spreadRadius <= 0) {
             return center.clone();
         }
         for (int attempt = 0; attempt < 10; attempt++) {
             int x = center.getBlockX() + randomBetween(-spreadRadius, spreadRadius);
             int z = center.getBlockZ() + randomBetween(-spreadRadius, spreadRadius);
-            Location candidate = findSurfaceLocation(center.getWorld(), x, z);
+            Location candidate = findSpawnLocation(center.getWorld(), x, z, spawnMode);
             if (candidate != null && candidate.distanceSquared(center) <= spreadRadius * spreadRadius + 4.0) {
                 return candidate;
             }
         }
         return center.clone();
+    }
+
+    private Location findSpawnLocation(World world, int x, int z, SpawnMode spawnMode) {
+        return switch (spawnMode) {
+            case LAND -> findSurfaceLocation(world, x, z);
+            case WATER_SURFACE -> findWaterSurfaceLocation(world, x, z);
+            case UNDERWATER -> findUnderwaterLocation(world, x, z);
+        };
     }
 
     private Location findSurfaceLocation(World world, int x, int z) {
@@ -442,6 +484,58 @@ public final class EventSpawner {
         }
 
         return new Location(world, x + 0.5, body.getY(), z + 0.5);
+    }
+
+    private Location findWaterSurfaceLocation(World world, int x, int z) {
+        if (world == null) {
+            return null;
+        }
+        if (config.isRequireLoadedChunkForSpawn() && !world.isChunkLoaded(x >> 4, z >> 4)) {
+            return null;
+        }
+
+        for (int y = world.getMaxHeight() - 1; y >= world.getMinHeight(); y--) {
+            Block water = world.getBlockAt(x, y, z);
+            if (water.getType() != Material.WATER) {
+                continue;
+            }
+            Block below = water.getRelative(0, -1, 0);
+            Block above = water.getRelative(0, 1, 0);
+            if (below.getType() != Material.WATER || config.isBiomeDisabled(water.getBiome())) {
+                return null;
+            }
+            if (above.getType() == Material.WATER || !above.isPassable() || isUnsafeSpace(above.getType())) {
+                continue;
+            }
+            return new Location(world, x + 0.5, water.getY(), z + 0.5);
+        }
+        return null;
+    }
+
+    private Location findUnderwaterLocation(World world, int x, int z) {
+        if (world == null) {
+            return null;
+        }
+        if (config.isRequireLoadedChunkForSpawn() && !world.isChunkLoaded(x >> 4, z >> 4)) {
+            return null;
+        }
+
+        List<Block> candidates = new ArrayList<>();
+        for (int y = world.getMinHeight(); y < world.getMaxHeight() - 1; y++) {
+            Block body = world.getBlockAt(x, y, z);
+            Block head = body.getRelative(0, 1, 0);
+            if (body.getType() == Material.WATER
+                    && head.getType() == Material.WATER
+                    && !config.isBiomeDisabled(body.getBiome())) {
+                candidates.add(body);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return null;
+        }
+
+        Block selected = candidates.get(random.nextInt(candidates.size()));
+        return new Location(world, x + 0.5, selected.getY(), z + 0.5);
     }
 
     private boolean isUnsafeGround(Material material) {
