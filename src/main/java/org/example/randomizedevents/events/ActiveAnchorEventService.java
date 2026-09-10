@@ -2,6 +2,7 @@ package org.example.randomizedevents.events;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -139,7 +140,8 @@ public final class ActiveAnchorEventService implements Listener {
         }
 
         long cleanupAt = System.currentTimeMillis() + anchor.bannerDestroyedDespawnSeconds() * 1000L;
-        activeEvents.put(activeEvent.eventInstanceId(), activeEvent.withBannerDestroyed(cleanupAt));
+        removeSmokeSource(activeEvent);
+        activeEvents.put(activeEvent.eventInstanceId(), activeEvent.withSmokeSourceLocation(null).withBannerDestroyed(cleanupAt));
         save();
         event.getPlayer().sendMessage(config.inlineMessage("&7The anchor banner is down. Remaining event mobs will fade in &e"
                 + anchor.bannerDestroyedDespawnSeconds() / 60 + " minutes&7."));
@@ -159,10 +161,17 @@ public final class ActiveAnchorEventService implements Listener {
                 continue;
             }
 
+            if (!isAnchorOnSurface(activeEvent.bannerLocation())) {
+                removeActiveEvent(activeEvent);
+                continue;
+            }
+
             if (!activeEvent.bannerDestroyed()) {
                 if (!isBannerStillPresent(activeEvent, anchor.bannerMaterial())) {
+                    removeSmokeSource(activeEvent);
                     activeEvents.put(activeEvent.eventInstanceId(),
-                            activeEvent.withBannerDestroyed(now + anchor.bannerDestroyedDespawnSeconds() * 1000L));
+                            activeEvent.withSmokeSourceLocation(null)
+                                    .withBannerDestroyed(now + anchor.bannerDestroyedDespawnSeconds() * 1000L));
                     save();
                     continue;
                 }
@@ -204,10 +213,10 @@ public final class ActiveAnchorEventService implements Listener {
         }
 
         Location sourceLocation = activeEvent.smokeSourceLocation();
-        if (!isSmokeSourceStillPresent(sourceLocation, marker)) {
-            sourceLocation = placeSmokeSource(activeEvent.bannerLocation(), marker);
-            activeEvents.put(activeEvent.eventInstanceId(), activeEvent.withSmokeSourceLocation(sourceLocation));
+        if (sourceLocation != null && !isSmokeSourceStillPresent(sourceLocation, marker)) {
+            activeEvents.put(activeEvent.eventInstanceId(), activeEvent.withSmokeSourceLocation(null));
             save();
+            sourceLocation = null;
         }
         spawnSmokeMarker(sourceLocation == null ? activeEvent.bannerLocation() : sourceLocation, marker);
         nextSmokeMarkerAt.put(activeEvent.eventInstanceId(), now + marker.intervalSeconds() * 1000L);
@@ -262,42 +271,47 @@ public final class ActiveAnchorEventService implements Listener {
                 if ((dx == 0 && dz == 0) || dx * dx + dz * dz > radiusSquared) {
                     continue;
                 }
-                candidates.add(new Location(world, bannerLocation.getBlockX() + dx, bannerLocation.getBlockY(),
-                        bannerLocation.getBlockZ() + dz));
+                candidates.add(bannerLocation.clone().add(dx, 0.0, dz));
             }
         }
         Collections.shuffle(candidates, random);
 
         for (Location candidate : candidates) {
-            Location sourceLocation = findSmokeSourceLocation(world, candidate.getBlockX(), candidate.getBlockZ());
+            Location sourceLocation = findDrySmokeSourceLocation(candidate, bannerLocation.getBlockY());
             if (sourceLocation == null || sameBlock(sourceLocation, bannerLocation)) {
                 continue;
             }
-            Block source = sourceLocation.getBlock();
-            source.setType(marker.sourceBlock(), false);
+            sourceLocation.getBlock().setType(marker.sourceBlock(), false);
             return sourceLocation;
         }
-        plugin.getLogger().warning("Could not place smoke marker source near anchor event '" + bannerLocation + "'.");
         return null;
     }
 
-    private Location findSmokeSourceLocation(World world, int x, int z) {
-        Block ground = world.getHighestBlockAt(x, z);
-        while (ground.getY() > world.getMinHeight() && !ground.getType().isSolid()) {
+    private Location findDrySmokeSourceLocation(Location candidate, int bannerY) {
+        World world = candidate.getWorld();
+        if (world == null) {
+            return null;
+        }
+        Block ground = world.getHighestBlockAt(candidate.getBlockX(), candidate.getBlockZ(), HeightMap.WORLD_SURFACE);
+        int lowestSurfaceY = Math.max(world.getMinHeight(), ground.getY() - 6);
+        while (ground.getY() > lowestSurfaceY && !ground.getType().isSolid()) {
+            if (ground.isLiquid()) {
+                return null;
+            }
             ground = ground.getRelative(0, -1, 0);
         }
         Block source = ground.getRelative(0, 1, 0);
-        if (!ground.getType().isSolid() || (!source.getType().isAir() && !source.isPassable())) {
+        if (!ground.getType().isSolid()
+                || Math.abs(source.getY() - bannerY) > 2
+                || source.isLiquid()
+                || (!source.getType().isAir() && !source.isPassable())) {
             return null;
         }
         return source.getLocation();
     }
 
     private boolean isSmokeSourceStillPresent(Location location, AnchorSmokeMarkerDefinition marker) {
-        return location != null
-                && marker != null
-                && marker.sourceBlock() != null
-                && location.getBlock().getType() == marker.sourceBlock();
+        return marker.sourceBlock() != null && location.getBlock().getType() == marker.sourceBlock();
     }
 
     private void tickSubEvents(ActiveAnchorEvent activeEvent, AnchorEventDefinition anchor, long now) {
@@ -417,6 +431,22 @@ public final class ActiveAnchorEventService implements Listener {
         }
         block.setType(material, false);
         return true;
+    }
+
+    private boolean isAnchorOnSurface(Location bannerLocation) {
+        World world = bannerLocation.getWorld();
+        if (world == null) {
+            return false;
+        }
+        Block ground = world.getHighestBlockAt(bannerLocation.getBlockX(), bannerLocation.getBlockZ(), HeightMap.WORLD_SURFACE);
+        int lowestSurfaceY = Math.max(world.getMinHeight(), ground.getY() - 6);
+        while (ground.getY() > lowestSurfaceY && !ground.getType().isSolid()) {
+            if (ground.isLiquid()) {
+                return false;
+            }
+            ground = ground.getRelative(0, -1, 0);
+        }
+        return ground.getType().isSolid() && ground.getY() + 1 == bannerLocation.getBlockY();
     }
 
     private boolean isBannerStillPresent(ActiveAnchorEvent activeEvent, Material material) {

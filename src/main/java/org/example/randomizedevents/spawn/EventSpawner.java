@@ -2,6 +2,7 @@ package org.example.randomizedevents.spawn;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -419,7 +420,8 @@ public final class EventSpawner {
         Location playerLocation = target.getLocation();
         World world = target.getWorld();
 
-        for (int attempt = 0; attempt < 24; attempt++) {
+        int attempts = config.getAnchorEvent(event.id()) == null ? 24 : 96;
+        for (int attempt = 0; attempt < attempts; attempt++) {
             double angle = random.nextDouble() * Math.PI * 2.0;
             int distance = randomBetween(event.minDistance(), event.maxDistance());
             int x = playerLocation.getBlockX() + (int) Math.round(Math.cos(angle) * distance);
@@ -471,18 +473,19 @@ public final class EventSpawner {
             return null;
         }
 
-        int startY = world.getHighestBlockYAt(x, z);
-        for (int y = Math.min(startY, world.getMaxHeight() - 3); y >= world.getMinHeight(); y--) {
-            Block ground = world.getBlockAt(x, y, z);
-            Block body = ground.getRelative(0, 1, 0);
-            Block head = ground.getRelative(0, 2, 0);
-
-            if (isSafeLandSpawn(ground, body, head)) {
-                return new Location(world, x + 0.5, body.getY(), z + 0.5);
+        Block ground = world.getHighestBlockAt(x, z, HeightMap.WORLD_SURFACE);
+        int lowestSurfaceY = Math.max(world.getMinHeight(), ground.getY() - 6);
+        while (ground.getY() > lowestSurfaceY && !ground.getType().isSolid()) {
+            if (ground.isLiquid() || isUnsafeSpace(ground.getType())) {
+                return null;
             }
+            ground = ground.getRelative(0, -1, 0);
         }
-
-        return null;
+        Block body = ground.getRelative(0, 1, 0);
+        Block head = ground.getRelative(0, 2, 0);
+        return isSafeLandSpawn(ground, body, head)
+                ? new Location(world, x + 0.5, body.getY(), z + 0.5)
+                : null;
     }
 
     private boolean isSafeLandSpawn(Block ground, Block body, Block head) {
