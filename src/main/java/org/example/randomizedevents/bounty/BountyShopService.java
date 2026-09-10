@@ -233,17 +233,16 @@ public final class BountyShopService implements Listener {
     }
 
     private Location findSurfaceLocation(World world, int x, int z) {
-        Block topBlock = world.getHighestBlockAt(x, z);
-        Block ground = topBlock.getRelative(0, -1, 0);
-        Block body = ground.getRelative(0, 1, 0);
-        Block head = ground.getRelative(0, 2, 0);
-        if (!ground.getType().isSolid() || !body.getType().isAir() || !head.getType().isAir()) {
-            return null;
+        int startY = world.getHighestBlockYAt(x, z);
+        for (int y = Math.min(startY, world.getMaxHeight() - 3); y >= world.getMinHeight(); y--) {
+            Block ground = world.getBlockAt(x, y, z);
+            Block body = ground.getRelative(0, 1, 0);
+            Block head = ground.getRelative(0, 2, 0);
+            if (isSafeShopSpace(ground, body, head)) {
+                return new Location(world, x + 0.5, body.getY(), z + 0.5);
+            }
         }
-        if (ground.isLiquid() || body.isLiquid() || head.isLiquid()) {
-            return null;
-        }
-        return new Location(world, x + 0.5, body.getY(), z + 0.5);
+        return null;
     }
 
     private boolean hasRoomForShop(Location center) {
@@ -255,12 +254,22 @@ public final class BountyShopService implements Listener {
             for (int dz = -2; dz <= 2; dz++) {
                 Block foot = world.getBlockAt(center.getBlockX() + dx, center.getBlockY(), center.getBlockZ() + dz);
                 Block head = foot.getRelative(0, 1, 0);
-                if (!foot.getType().isAir() || !head.getType().isAir()) {
+                Block ground = foot.getRelative(0, -1, 0);
+                if (!isSafeShopSpace(ground, foot, head)) {
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    private boolean isSafeShopSpace(Block ground, Block body, Block head) {
+        return ground.getType().isSolid()
+                && !ground.isLiquid()
+                && body.isPassable()
+                && head.isPassable()
+                && !body.isLiquid()
+                && !head.isLiquid();
     }
 
     private void buildShopStructure(Location center) {

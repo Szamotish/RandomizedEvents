@@ -468,22 +468,31 @@ public final class EventSpawner {
             return null;
         }
 
-        Block topBlock = world.getHighestBlockAt(x, z);
-        Block ground = topBlock.getRelative(0, -1, 0);
-        Block body = ground.getRelative(0, 1, 0);
-        Block head = ground.getRelative(0, 2, 0);
+        int startY = world.getHighestBlockYAt(x, z);
+        for (int y = Math.min(startY, world.getMaxHeight() - 3); y >= world.getMinHeight(); y--) {
+            Block ground = world.getBlockAt(x, y, z);
+            Block body = ground.getRelative(0, 1, 0);
+            Block head = ground.getRelative(0, 2, 0);
 
+            if (isSafeLandSpawn(ground, body, head)) {
+                return new Location(world, x + 0.5, body.getY(), z + 0.5);
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isSafeLandSpawn(Block ground, Block body, Block head) {
         if (config.isBiomeDisabled(ground.getBiome())) {
-            return null;
+            return false;
         }
         if (!ground.getType().isSolid() || isUnsafeGround(ground.getType())) {
-            return null;
+            return false;
         }
-        if (!body.isPassable() || !head.isPassable() || isUnsafeSpace(body.getType()) || isUnsafeSpace(head.getType())) {
-            return null;
-        }
-
-        return new Location(world, x + 0.5, body.getY(), z + 0.5);
+        return body.isPassable()
+                && head.isPassable()
+                && !isUnsafeSpace(body.getType())
+                && !isUnsafeSpace(head.getType());
     }
 
     private Location findWaterSurfaceLocation(World world, int x, int z) {
