@@ -139,6 +139,8 @@ public final class EventSpawner {
             return SpawnResult.failed("Event is missing.");
         }
         String eventInstanceId = UUID.randomUUID().toString();
+        boolean anchoredEvent = config.getAnchorEvent(event.id()) != null;
+        Player spawnTarget = anchoredEvent ? null : target;
         Location center = findSpawnCenter(target, event);
         if (center == null) {
             return SpawnResult.failed("Could not find a safe spawn location near " + target.getName() + ".");
@@ -157,7 +159,7 @@ public final class EventSpawner {
             }
             int picks = randomBetween(required.minPicks(), required.maxPicks());
             for (int i = 0; i < picks; i++) {
-                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), target, event.id(), eventInstanceId,
+                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), spawnTarget, event.id(), eventInstanceId,
                         event.spawnMode());
                 if (added > 0) {
                     spawned += added;
@@ -186,7 +188,7 @@ public final class EventSpawner {
                 if (cost > budget) {
                     break;
                 }
-                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), target, event.id(), eventInstanceId,
+                int added = spawnMobClassAt(mobClass, center, event.spreadRadius(), spawnTarget, event.id(), eventInstanceId,
                         event.spawnMode());
                 if (added > 0) {
                     spawned += added;

@@ -5,8 +5,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Bisected;
+import org.bukkit.block.data.type.TrapDoor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -17,6 +20,7 @@ import org.bukkit.entity.WanderingTrader;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -178,6 +182,8 @@ public final class BountyShopService implements Listener {
         shopkeeper.setCanPickupItems(false);
         shopkeeper.setInvulnerable(true);
         shopkeeper.setAI(false);
+        shopkeeper.setCollidable(false);
+        shopkeeper.setSilent(true);
         if (shopkeeper instanceof WanderingTrader trader) {
             trader.setDespawnDelay(Integer.MAX_VALUE);
         }
@@ -252,11 +258,19 @@ public final class BountyShopService implements Listener {
         }
         for (int dx = -2; dx <= 2; dx++) {
             for (int dz = -2; dz <= 2; dz++) {
-                Block foot = world.getBlockAt(center.getBlockX() + dx, center.getBlockY(), center.getBlockZ() + dz);
-                Block head = foot.getRelative(0, 1, 0);
-                Block ground = foot.getRelative(0, -1, 0);
-                if (!isSafeShopSpace(ground, foot, head)) {
+                Block ground = world.getBlockAt(center.getBlockX() + dx, center.getBlockY() - 1, center.getBlockZ() + dz);
+                if (!ground.getType().isSolid() || ground.isLiquid()) {
                     return false;
+                }
+            }
+        }
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                for (int dy = 0; dy <= 5; dy++) {
+                    Block block = world.getBlockAt(center.getBlockX() + dx, center.getBlockY() + dy, center.getBlockZ() + dz);
+                    if (!block.isPassable() || block.isLiquid()) {
+                        return false;
+                    }
                 }
             }
         }
@@ -281,23 +295,86 @@ public final class BountyShopService implements Listener {
         int x = center.getBlockX();
         int y = center.getBlockY();
         int z = center.getBlockZ();
-        placeIfAir(world, x - 2, y, z - 2, Material.OAK_FENCE);
-        placeIfAir(world, x + 2, y, z - 2, Material.OAK_FENCE);
-        placeIfAir(world, x - 2, y, z + 2, Material.OAK_FENCE);
-        placeIfAir(world, x + 2, y, z + 2, Material.OAK_FENCE);
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                placeIfAir(world, x + dx, y + 3, z + dz, (dx + dz) % 2 == 0 ? Material.RED_WOOL : Material.WHITE_WOOL);
+
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                for (int dy = 0; dy <= 4; dy++) {
+                    clearBlock(world, x + dx, y + dy, z + dz);
+                }
             }
         }
-        placeIfAir(world, x - 1, y, z + 1, Material.BARREL);
-        placeIfAir(world, x + 1, y, z + 1, Material.CAMPFIRE);
+
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                setBlock(world, x + dx, y - 1, z + dz, isEdge(dx, dz) ? Material.COBBLESTONE : Material.SPRUCE_PLANKS);
+            }
+        }
+
+        for (int dy = 0; dy <= 3; dy++) {
+            setBlock(world, x - 2, y + dy, z - 2, Material.OAK_LOG);
+            setBlock(world, x + 2, y + dy, z - 2, Material.OAK_LOG);
+            setBlock(world, x - 2, y + dy, z + 2, Material.OAK_LOG);
+            setBlock(world, x + 2, y + dy, z + 2, Material.OAK_LOG);
+        }
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = 0; dy <= 2; dy++) {
+                if (!(dx == 0 && dy == 1)) {
+                    setBlock(world, x + dx, y + dy, z - 2, Material.OAK_PLANKS);
+                }
+                setBlock(world, x + dx, y + dy, z + 2, dy == 1 && dx == 0 ? Material.GLASS_PANE : Material.OAK_PLANKS);
+            }
+        }
+        for (int dz = -1; dz <= 1; dz++) {
+            for (int dy = 0; dy <= 2; dy++) {
+                setBlock(world, x - 2, y + dy, z + dz, dy == 1 && dz == 0 ? Material.GLASS_PANE : Material.OAK_PLANKS);
+                setBlock(world, x + 2, y + dy, z + dz, dy == 1 && dz == 0 ? Material.GLASS_PANE : Material.OAK_PLANKS);
+            }
+        }
+
+        placeTrapdoor(world.getBlockAt(x, y, z - 2), BlockFace.NORTH);
+        setBlock(world, x - 1, y, z - 2, Material.BARREL);
+        setBlock(world, x + 1, y, z - 2, Material.BARREL);
+        setBlock(world, x, y + 2, z - 2, Material.OAK_PLANKS);
+        setBlock(world, x - 1, y, z + 1, Material.CRAFTING_TABLE);
+        setBlock(world, x + 1, y, z + 1, Material.BARREL);
+        setBlock(world, x, y + 3, z, Material.LANTERN);
+
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                Material roof = Math.abs(dx) == 3 || Math.abs(dz) == 3 ? Material.DARK_OAK_SLAB : Material.DARK_OAK_PLANKS;
+                setBlock(world, x + dx, y + 4, z + dz, roof);
+            }
+        }
+        for (int dx = -1; dx <= 1; dx++) {
+            setBlock(world, x + dx, y + 5, z - 1, Material.DARK_OAK_SLAB);
+            setBlock(world, x + dx, y + 5, z, Material.DARK_OAK_SLAB);
+            setBlock(world, x + dx, y + 5, z + 1, Material.DARK_OAK_SLAB);
+        }
     }
 
-    private void placeIfAir(World world, int x, int y, int z, Material material) {
+    private boolean isEdge(int dx, int dz) {
+        return Math.abs(dx) == 2 || Math.abs(dz) == 2;
+    }
+
+    private void clearBlock(World world, int x, int y, int z) {
         Block block = world.getBlockAt(x, y, z);
-        if (block.getType().isAir()) {
-            block.setType(material, false);
+        if (block.isPassable() || block.getType().isAir()) {
+            block.setType(Material.AIR, false);
+        }
+    }
+
+    private void setBlock(World world, int x, int y, int z, Material material) {
+        world.getBlockAt(x, y, z).setType(material, false);
+    }
+
+    private void placeTrapdoor(Block block, BlockFace facing) {
+        block.setType(Material.OAK_TRAPDOOR, false);
+        if (block.getBlockData() instanceof TrapDoor trapDoor) {
+            trapDoor.setFacing(facing);
+            trapDoor.setHalf(Bisected.Half.BOTTOM);
+            trapDoor.setOpen(true);
+            block.setBlockData(trapDoor, false);
         }
     }
 
@@ -320,6 +397,14 @@ public final class BountyShopService implements Listener {
     @EventHandler
     public void onShopkeeperDamage(EntityDamageEvent event) {
         if (isShopkeeper(event.getEntity())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onShopkeeperTarget(EntityTargetLivingEntityEvent event) {
+        LivingEntity target = event.getTarget();
+        if (target != null && isShopkeeper(target)) {
             event.setCancelled(true);
         }
     }
