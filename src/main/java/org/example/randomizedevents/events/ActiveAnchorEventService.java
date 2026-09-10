@@ -102,6 +102,10 @@ public final class ActiveAnchorEventService implements Listener {
         }
 
         Location bannerLocation = center.getBlock().getLocation();
+        if (!isAnchorOnSurface(bannerLocation)) {
+            plugin.getLogger().warning("Rejected non-surface anchor location for event '" + event.id() + "'.");
+            return false;
+        }
         if (!placeBanner(bannerLocation, anchor.bannerMaterial())) {
             plugin.getLogger().warning("Could not place anchor banner for event '" + event.id() + "'.");
             return false;
@@ -157,11 +161,6 @@ public final class ActiveAnchorEventService implements Listener {
             }
 
             if (activeEvent.cleanupAt() > 0L && now >= activeEvent.cleanupAt()) {
-                removeActiveEvent(activeEvent);
-                continue;
-            }
-
-            if (!isAnchorOnSurface(activeEvent.bannerLocation())) {
                 removeActiveEvent(activeEvent);
                 continue;
             }

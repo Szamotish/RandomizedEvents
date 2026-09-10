@@ -165,7 +165,8 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         String message = config.message("forced-event-started")
                 .replace("{event}", result.event().displayName())
                 .replace("{player}", result.targetPlayerName());
-        sender.sendMessage(message + ChatColor.GRAY + " Spawned mobs: " + result.spawnedMobs());
+        sender.sendMessage(message + ChatColor.GRAY + " Spawned mobs: " + result.spawnedMobs()
+                + ". Location: " + ChatColor.AQUA + formatLocation(result.spawnLocation()));
         plugin.getLogger().info(sender.getName() + " forced event '" + result.event().id() + "'.");
     }
 

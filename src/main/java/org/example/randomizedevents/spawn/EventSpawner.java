@@ -144,6 +144,10 @@ public final class EventSpawner {
         Player spawnTarget = anchoredEvent ? null : target;
         Location center = findSpawnCenter(target, event);
         if (center == null) {
+            if (anchoredEvent) {
+                return SpawnResult.failed("Could not find a dry surface between " + event.minDistance()
+                        + " and " + event.maxDistance() + " blocks from " + target.getName() + ".");
+            }
             return SpawnResult.failed("Could not find a safe spawn location near " + target.getName() + ".");
         }
 
@@ -214,7 +218,7 @@ public final class EventSpawner {
         }
         announceEvent(event, target, center, announcementOverride, targetMessageOverride);
         plugin.getLogger().info("Spawned event '" + event.id() + "' near " + target.getName() + " with " + spawned + " mob(s).");
-        return SpawnResult.success(event, target.getName(), spawned, eventInstanceId);
+        return SpawnResult.success(event, target.getName(), spawned, eventInstanceId, center);
     }
 
     public int spawnMobClassAt(MobDefinition mobClass, Location center, int spreadRadius, Player target, String eventId) {
