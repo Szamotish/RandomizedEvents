@@ -2,6 +2,8 @@ package org.example.randomizedevents.events;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
@@ -103,6 +105,7 @@ public final class EventBehaviorService {
 
         double radius = mobClass.medicHealRadius() == null ? 8.0 : mobClass.medicHealRadius();
         double amount = mobClass.medicHealAmount() == null ? 4.0 : mobClass.medicHealAmount();
+        boolean healedAny = false;
         for (LivingEntity nearby : entity.getLocation().getNearbyLivingEntities(radius)) {
             if (nearby.equals(entity) || !mobRegistry.isEventMob(nearby) || nearby.isDead()) {
                 continue;
@@ -110,7 +113,21 @@ public final class EventBehaviorService {
             double maxHealth = nearby.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) == null
                     ? nearby.getHealth()
                     : nearby.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue();
-            nearby.setHealth(Math.min(maxHealth, nearby.getHealth() + amount));
+            double healedHealth = Math.min(maxHealth, nearby.getHealth() + amount);
+            if (healedHealth <= nearby.getHealth()) {
+                continue;
+            }
+            nearby.setHealth(healedHealth);
+            nearby.getWorld().spawnParticle(Particle.HEART,
+                    nearby.getLocation().add(0.0, nearby.getHeight() * 0.75, 0.0),
+                    2, 0.3, 0.25, 0.3, 0.01);
+            healedAny = true;
+        }
+        if (healedAny) {
+            entity.getWorld().spawnParticle(Particle.HAPPY_VILLAGER,
+                    entity.getLocation().add(0.0, entity.getHeight() * 0.65, 0.0),
+                    16, 0.65, 0.45, 0.65, 0.02);
+            entity.getWorld().playSound(entity.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, 0.8f, 1.35f);
         }
 
         int interval = mobClass.medicIntervalSeconds() == null ? 8 : Math.max(1, mobClass.medicIntervalSeconds());

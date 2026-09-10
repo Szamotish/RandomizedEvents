@@ -7,6 +7,7 @@ import org.bukkit.Particle;
 import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.EntityType;
@@ -33,6 +34,8 @@ import java.util.Set;
 import java.util.logging.Level;
 
 public final class EventConfigManager {
+
+    private static final int CURRENT_CONFIG_VERSION = 1;
 
     private final JavaPlugin plugin;
     private final Map<String, EventDefinition> events = new HashMap<>();
@@ -103,6 +106,7 @@ public final class EventConfigManager {
 
     public void load() {
         plugin.reloadConfig();
+        migrateConfig();
         this.enabled = plugin.getConfig().getBoolean("settings.enabled", true);
         this.announceEvents = plugin.getConfig().getBoolean("settings.announce-events", true);
         this.minOnlinePlayers = Math.max(1, plugin.getConfig().getInt("settings.min-online-players", 1));
@@ -183,6 +187,59 @@ public final class EventConfigManager {
         loadAnchorEvents();
 
         bountyShop = loadBountyShop();
+    }
+
+    private void migrateConfig() {
+        FileConfiguration data = plugin.getConfig();
+        if (data.contains("config-version", true) && data.getInt("config-version") >= CURRENT_CONFIG_VERSION) {
+            return;
+        }
+
+        replaceInt(data, "anchor-events.enemy_camp.guard-leash-radius", 28, 14);
+        replaceInt(data, "anchor-events.enemy_camp.guard-awake-radius", 48, 12);
+        replaceString(data, "anchor-events.enemy_camp.smoke-marker.particle", "CAMPFIRE_SIGNAL_SMOKE", "CAMPFIRE_COSY_SMOKE");
+        replaceInt(data, "anchor-events.enemy_camp.smoke-marker.height", 22, 20);
+        replaceInt(data, "anchor-events.enemy_camp.smoke-marker.interval-seconds", 3, 1);
+        replaceInt(data, "anchor-events.enemy_camp.smoke-marker.points", 7, 24);
+        replaceInt(data, "anchor-events.enemy_camp.smoke-marker.count", 1, 2);
+        replaceDouble(data, "anchor-events.enemy_camp.smoke-marker.spread", 0.35, 0.18);
+        replaceInt(data, "anchor-events.cursed_ritual.guard-leash-radius", 24, 12);
+        replaceInt(data, "anchor-events.cursed_ritual.guard-awake-radius", 48, 10);
+        replaceInt(data, "anchor-events.cursed_ritual.smoke-marker.height", 22, 20);
+        replaceInt(data, "anchor-events.cursed_ritual.smoke-marker.interval-seconds", 3, 1);
+        replaceInt(data, "anchor-events.cursed_ritual.smoke-marker.points", 7, 24);
+        replaceInt(data, "anchor-events.cursed_ritual.smoke-marker.count", 1, 2);
+        replaceDouble(data, "anchor-events.cursed_ritual.smoke-marker.spread", 0.35, 0.18);
+        replaceInt(data, "events.enemy_camp.spread-radius", 14, 9);
+        replaceInt(data, "events.cursed_ritual.spread-radius", 9, 7);
+
+        List<String> shamanBehaviors = new ArrayList<>(data.getStringList("mob-classes.shaman_evoker.behaviors"));
+        if (shamanBehaviors.stream().noneMatch("no_vex_summon"::equalsIgnoreCase)) {
+            shamanBehaviors.add("no_vex_summon");
+            data.set("mob-classes.shaman_evoker.behaviors", shamanBehaviors);
+        }
+
+        data.set("config-version", CURRENT_CONFIG_VERSION);
+        plugin.saveConfig();
+        plugin.getLogger().info("Updated RandomizedEvents configuration to version " + CURRENT_CONFIG_VERSION + ".");
+    }
+
+    private void replaceInt(FileConfiguration data, String path, int oldValue, int newValue) {
+        if (data.getInt(path) == oldValue) {
+            data.set(path, newValue);
+        }
+    }
+
+    private void replaceDouble(FileConfiguration data, String path, double oldValue, double newValue) {
+        if (Double.compare(data.getDouble(path), oldValue) == 0) {
+            data.set(path, newValue);
+        }
+    }
+
+    private void replaceString(FileConfiguration data, String path, String oldValue, String newValue) {
+        if (oldValue.equalsIgnoreCase(data.getString(path, ""))) {
+            data.set(path, newValue);
+        }
     }
 
     private void loadGearProfiles() {

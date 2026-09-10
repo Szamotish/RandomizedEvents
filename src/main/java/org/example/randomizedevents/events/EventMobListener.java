@@ -3,17 +3,25 @@ package org.example.randomizedevents.events;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EvokerFangs;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Spellcaster;
 import org.bukkit.entity.WanderingTrader;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityCombustByBlockEvent;
+import org.bukkit.event.entity.EntityCombustByEntityEvent;
+import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntitySpellCastEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
@@ -99,6 +107,12 @@ public final class EventMobListener implements Listener {
         }
 
         LivingEntity damager = resolveLivingDamager(event);
+        if (damager != null && mobRegistry.isEventMob(victim) && mobRegistry.isEventMob(damager)) {
+            event.setCancelled(true);
+            stopFriendlyTargeting(damager, victim);
+            stopFriendlyTargeting(victim, damager);
+            return;
+        }
         markCombatIfEventMob(victim);
         if (damager != null) {
             markCombatIfEventMob(damager);
@@ -136,7 +150,16 @@ public final class EventMobListener implements Listener {
                 return livingEntity;
             }
         }
+        if (event.getDamager() instanceof EvokerFangs fangs && fangs.getOwner() instanceof LivingEntity livingEntity) {
+            return livingEntity;
+        }
         return null;
+    }
+
+    private void stopFriendlyTargeting(LivingEntity attacker, LivingEntity target) {
+        if (attacker instanceof Mob mob && target.equals(mob.getTarget())) {
+            mob.setTarget(null);
+        }
     }
 
     private void markCombatIfEventMob(LivingEntity entity) {
@@ -147,7 +170,14 @@ public final class EventMobListener implements Listener {
 
     @EventHandler
     public void onEventMobTarget(EntityTargetLivingEntityEvent event) {
-        if (!(event.getEntity() instanceof LivingEntity entity) || !(event.getTarget() instanceof Player)) {
+        if (!(event.getEntity() instanceof LivingEntity entity) || !(event.getTarget() instanceof LivingEntity target)) {
+            return;
+        }
+        if (mobRegistry.isEventMob(entity) && mobRegistry.isEventMob(target)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!(target instanceof Player)) {
             return;
         }
         if (!mobRegistry.isEventMob(entity)
@@ -212,6 +242,38 @@ public final class EventMobListener implements Listener {
                     event.getPlayer().getUniqueId(),
                     result.eventInstanceId()
             ));
+        }
+    }
+
+    @EventHandler
+    public void onEventMobPotionSplash(PotionSplashEvent event) {
+        if (!(event.getPotion().getShooter() instanceof LivingEntity thrower) || !mobRegistry.isEventMob(thrower)) {
+            return;
+        }
+        for (LivingEntity affected : event.getAffectedEntities()) {
+            if (mobRegistry.isEventMob(affected)) {
+                event.setIntensity(affected, 0.0);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onEventMobSpell(EntitySpellCastEvent event) {
+        LivingEntity caster = event.getEntity();
+        if (event.getSpell() == Spellcaster.Spell.SUMMON_VEX
+                && mobRegistry.isEventMob(caster)
+                && mobRegistry.hasBehavior(caster, "no_vex_summon")) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onEventMobCombust(EntityCombustEvent event) {
+        if (event instanceof EntityCombustByBlockEvent || event instanceof EntityCombustByEntityEvent) {
+            return;
+        }
+        if (event.getEntity() instanceof LivingEntity entity && mobRegistry.isEventMob(entity)) {
+            event.setCancelled(true);
         }
     }
 

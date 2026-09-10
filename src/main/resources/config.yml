@@ -1,3 +1,5 @@
+config-version: 1
+
 settings:
   enabled: true
   announce-events: true
@@ -110,18 +112,18 @@ anchor-events:
     sub-event-radius: 1000
     no-target-timeout-seconds: 1800
     banner-destroyed-despawn-seconds: 1800
-    guard-leash-radius: 28
-    guard-awake-radius: 48
+    guard-leash-radius: 14
+    guard-awake-radius: 12
     smoke-marker:
       enabled: true
-      particle: CAMPFIRE_SIGNAL_SMOKE
+      particle: CAMPFIRE_COSY_SMOKE
       source-block: CAMPFIRE
       source-radius: 3
-      height: 22
-      interval-seconds: 3
-      points: 7
-      count: 1
-      spread: 0.35
+      height: 20
+      interval-seconds: 1
+      points: 24
+      count: 2
+      spread: 0.18
     sub-events:
       - patrol
       - ambush
@@ -133,18 +135,18 @@ anchor-events:
     sub-event-radius: 1000
     no-target-timeout-seconds: 1800
     banner-destroyed-despawn-seconds: 1800
-    guard-leash-radius: 24
-    guard-awake-radius: 48
+    guard-leash-radius: 12
+    guard-awake-radius: 10
     smoke-marker:
       enabled: true
       particle: SOUL
       source-block: SOUL_CAMPFIRE
       source-radius: 3
-      height: 22
-      interval-seconds: 3
-      points: 7
-      count: 1
-      spread: 0.35
+      height: 20
+      interval-seconds: 1
+      points: 24
+      count: 2
+      spread: 0.18
     sub-events:
       - patrol
       - ambush
@@ -564,7 +566,7 @@ mob-classes:
     health: 48.0
     movement-speed: 0.28
     follow-range: 42.0
-    behaviors: [debuff_aura]
+    behaviors: [debuff_aura, no_vex_summon]
     debuff:
       effect: SLOWNESS
       duration-seconds: 5
@@ -1487,7 +1489,7 @@ events:
     scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
     min-distance: 90
     max-distance: 160
-    spread-radius: 14
+    spread-radius: 9
     announcement-radius: 300
     lightning-marker: true
     required:
@@ -1635,7 +1637,7 @@ events:
     scaling: {weight-change-per-stage: 0.003, max-weight-change: 0.08}
     min-distance: 65
     max-distance: 130
-    spread-radius: 9
+    spread-radius: 7
     announcement-radius: 300
     lightning-marker: true
     required:

@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.util.Vector;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.example.randomizedevents.config.AnchorEventDefinition;
@@ -166,8 +168,27 @@ public final class ActiveAnchorEventService implements Listener {
                 }
                 tickSmokeMarker(activeEvent, anchor, now);
                 tickSubEvents(activeEvent, anchor, now);
-                leashSleepingGuards(activeEvent, anchor);
+                leashGuards(activeEvent, anchor);
             }
+        }
+    }
+
+    @EventHandler
+    public void onAnchorMobTarget(EntityTargetLivingEntityEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity entity) || !(event.getTarget() instanceof Player player)) {
+            return;
+        }
+        ActiveAnchorEvent activeEvent = activeEvents.get(mobRegistry.getEventInstanceId(entity));
+        if (activeEvent == null || activeEvent.bannerDestroyed()) {
+            return;
+        }
+        AnchorEventDefinition anchor = config.getAnchorEvent(activeEvent.eventId());
+        if (anchor == null || isWithinRadius(player.getLocation(), activeEvent.bannerLocation(), anchor.guardAwakeRadius())) {
+            return;
+        }
+        event.setCancelled(true);
+        if (entity instanceof Mob mob) {
+            mob.setTarget(null);
         }
     }
 
@@ -199,15 +220,21 @@ public final class ActiveAnchorEventService implements Listener {
         }
 
         int points = Math.max(1, marker.points());
+        double phase = random.nextDouble() * Math.PI * 2.0;
+        double driftX = randomOffset(marker.spread() * 0.8);
+        double driftZ = randomOffset(marker.spread() * 0.8);
         for (int i = 0; i < points; i++) {
             double progress = points == 1 ? 1.0 : (double) i / (points - 1);
             double y = 1.0 + progress * Math.max(1, marker.height() - 1);
+            double curlRadius = marker.spread() * (0.2 + progress * 0.45);
+            double angle = phase + progress * Math.PI * 2.0;
             Location location = sourceLocation.clone().add(
-                    0.5 + randomOffset(marker.spread()),
+                    0.5 + driftX * progress + Math.cos(angle) * curlRadius,
                     y,
-                    0.5 + randomOffset(marker.spread())
+                    0.5 + driftZ * progress + Math.sin(angle) * curlRadius
             );
-            world.spawnParticle(marker.particle(), location, marker.count(), marker.spread(), 0.08, marker.spread(), 0.01);
+            double particleSpread = Math.max(0.01, marker.spread() * 0.2);
+            world.spawnParticle(marker.particle(), location, marker.count(), particleSpread, 0.03, particleSpread, 0.005);
         }
     }
 
@@ -255,10 +282,12 @@ public final class ActiveAnchorEventService implements Listener {
     }
 
     private Location findSmokeSourceLocation(World world, int x, int z) {
-        Block topBlock = world.getHighestBlockAt(x, z);
-        Block ground = topBlock.getRelative(0, -1, 0);
+        Block ground = world.getHighestBlockAt(x, z);
+        while (ground.getY() > world.getMinHeight() && !ground.getType().isSolid()) {
+            ground = ground.getRelative(0, -1, 0);
+        }
         Block source = ground.getRelative(0, 1, 0);
-        if (!ground.getType().isSolid() || !source.getType().isAir()) {
+        if (!ground.getType().isSolid() || (!source.getType().isAir() && !source.isPassable())) {
             return null;
         }
         return source.getLocation();
@@ -305,39 +334,62 @@ public final class ActiveAnchorEventService implements Listener {
         save();
     }
 
-    private void leashSleepingGuards(ActiveAnchorEvent activeEvent, AnchorEventDefinition anchor) {
+    private void leashGuards(ActiveAnchorEvent activeEvent, AnchorEventDefinition anchor) {
         Location bannerLocation = activeEvent.bannerLocation();
         World world = bannerLocation.getWorld();
         if (world == null) {
             return;
         }
 
-        double awakeRadiusSquared = anchor.guardAwakeRadius() * anchor.guardAwakeRadius();
         double leashRadiusSquared = anchor.guardLeashRadius() * anchor.guardLeashRadius();
         for (LivingEntity entity : world.getLivingEntities()) {
             if (!activeEvent.eventInstanceId().equals(mobRegistry.getEventInstanceId(entity)) || entity.isDead()) {
                 continue;
             }
-            if (hasNearbyPlayer(entity.getLocation(), awakeRadiusSquared) || hasPlayerTarget(entity)) {
-                continue;
+            if (entity instanceof Mob mob
+                    && mob.getTarget() instanceof Player player
+                    && !isWithinRadius(player.getLocation(), bannerLocation, anchor.guardAwakeRadius())) {
+                mob.setTarget(null);
+                entity.setVelocity(new Vector());
             }
             if (entity.getLocation().distanceSquared(bannerLocation) > leashRadiusSquared) {
-                entity.teleport(bannerLocation.clone().add(random.nextInt(5) - 2, 0, random.nextInt(5) - 2));
+                Location returnLocation = findGuardReturnLocation(bannerLocation);
+                if (returnLocation != null) {
+                    entity.teleport(returnLocation);
+                    entity.setVelocity(new Vector());
+                }
             }
         }
     }
 
-    private boolean hasPlayerTarget(LivingEntity entity) {
-        return entity instanceof Mob mob && mob.getTarget() instanceof Player player && player.isOnline() && !player.isDead();
-    }
-
-    private boolean hasNearbyPlayer(Location location, double radiusSquared) {
-        for (Player player : location.getWorld().getPlayers()) {
-            if (!player.isDead() && player.getLocation().distanceSquared(location) <= radiusSquared) {
-                return true;
+    private Location findGuardReturnLocation(Location bannerLocation) {
+        World world = bannerLocation.getWorld();
+        if (world == null) {
+            return null;
+        }
+        for (int attempt = 0; attempt < 12; attempt++) {
+            int dx = random.nextInt(7) - 3;
+            int dz = random.nextInt(7) - 3;
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
+            Block ground = world.getHighestBlockAt(bannerLocation.getBlockX() + dx, bannerLocation.getBlockZ() + dz);
+            while (ground.getY() > world.getMinHeight() && !ground.getType().isSolid()) {
+                ground = ground.getRelative(0, -1, 0);
+            }
+            Block body = ground.getRelative(0, 1, 0);
+            Block head = body.getRelative(0, 1, 0);
+            if (ground.getType().isSolid() && body.isPassable() && head.isPassable()) {
+                return body.getLocation().add(0.5, 0.0, 0.5);
             }
         }
-        return false;
+        return bannerLocation.clone().add(0.5, 0.0, 0.5);
+    }
+
+    private boolean isWithinRadius(Location location, Location center, double radius) {
+        return location.getWorld() != null
+                && location.getWorld().equals(center.getWorld())
+                && location.distanceSquared(center) <= radius * radius;
     }
 
     private Player randomPlayerNear(Location location, int radius) {
@@ -360,7 +412,7 @@ public final class ActiveAnchorEventService implements Listener {
 
     private boolean placeBanner(Location location, Material material) {
         Block block = location.getBlock();
-        if (!block.getType().isAir()) {
+        if (!block.getType().isAir() && (!block.isPassable() || block.isLiquid())) {
             return false;
         }
         block.setType(material, false);

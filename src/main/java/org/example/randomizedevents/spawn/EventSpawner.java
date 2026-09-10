@@ -207,7 +207,10 @@ public final class EventSpawner {
             return SpawnResult.failed("Event selected, but no mobs could be spawned.");
         }
 
-        registerAnchorEvent(event, center, eventInstanceId);
+        if (anchoredEvent && !registerAnchorEvent(event, center, eventInstanceId)) {
+            mobRegistry.removeEventMobsByInstanceId(eventInstanceId);
+            return SpawnResult.failed("Could not place the anchor banner for event '" + event.id() + "'.");
+        }
         announceEvent(event, target, center, announcementOverride, targetMessageOverride);
         plugin.getLogger().info("Spawned event '" + event.id() + "' near " + target.getName() + " with " + spawned + " mob(s).");
         return SpawnResult.success(event, target.getName(), spawned, eventInstanceId);
@@ -245,10 +248,8 @@ public final class EventSpawner {
         return mobClass.announcementMessage();
     }
 
-    private void registerAnchorEvent(EventDefinition event, Location center, String eventInstanceId) {
-        if (activeAnchorEventService != null) {
-            activeAnchorEventService.register(event, center, eventInstanceId);
-        }
+    private boolean registerAnchorEvent(EventDefinition event, Location center, String eventInstanceId) {
+        return activeAnchorEventService != null && activeAnchorEventService.register(event, center, eventInstanceId);
     }
 
     private int scaledEventBudget(EventDefinition event, World world) {

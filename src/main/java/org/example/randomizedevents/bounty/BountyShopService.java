@@ -181,7 +181,7 @@ public final class BountyShopService implements Listener {
         shopkeeper.setRemoveWhenFarAway(false);
         shopkeeper.setCanPickupItems(false);
         shopkeeper.setInvulnerable(true);
-        shopkeeper.setAI(false);
+        shopkeeper.setAI(true);
         shopkeeper.setCollidable(false);
         shopkeeper.setSilent(true);
         if (shopkeeper instanceof WanderingTrader trader) {
