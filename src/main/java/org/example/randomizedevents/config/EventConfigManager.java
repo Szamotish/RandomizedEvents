@@ -35,7 +35,7 @@ import java.util.logging.Level;
 
 public final class EventConfigManager {
 
-    private static final int CURRENT_CONFIG_VERSION = 3;
+    private static final int CURRENT_CONFIG_VERSION = 4;
 
     private final JavaPlugin plugin;
     private final Map<String, EventDefinition> events = new HashMap<>();
@@ -216,6 +216,10 @@ public final class EventConfigManager {
         data.set("anchor-events.cursed_ritual.smoke-marker.source-block", "SOUL_CAMPFIRE");
         data.set("anchor-events.enemy_camp.smoke-marker.source-radius", 3);
         data.set("anchor-events.cursed_ritual.smoke-marker.source-radius", 3);
+        replaceInt(data, "anchor-events.enemy_camp.smoke-marker.height", 20, 36);
+        replaceInt(data, "anchor-events.enemy_camp.smoke-marker.points", 24, 36);
+        replaceInt(data, "anchor-events.cursed_ritual.smoke-marker.height", 20, 36);
+        replaceInt(data, "anchor-events.cursed_ritual.smoke-marker.points", 24, 36);
 
         List<String> shamanBehaviors = new ArrayList<>(data.getStringList("mob-classes.shaman_evoker.behaviors"));
         if (shamanBehaviors.stream().noneMatch("no_vex_summon"::equalsIgnoreCase)) {

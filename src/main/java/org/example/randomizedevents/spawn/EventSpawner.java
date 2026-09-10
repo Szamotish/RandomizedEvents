@@ -5,6 +5,7 @@ import org.bukkit.GameMode;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -558,7 +559,9 @@ public final class EventSpawner {
     }
 
     private boolean isUnsafeGround(Material material) {
-        return material == Material.LAVA
+        return Tag.LEAVES.isTagged(material)
+                || Tag.LOGS.isTagged(material)
+                || material == Material.LAVA
                 || material == Material.WATER
                 || material == Material.CACTUS
                 || material == Material.FIRE

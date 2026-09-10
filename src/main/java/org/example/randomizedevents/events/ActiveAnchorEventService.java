@@ -5,6 +5,7 @@ import org.bukkit.GameMode;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
@@ -143,6 +144,8 @@ public final class ActiveAnchorEventService implements Listener {
             return;
         }
 
+        event.setDropItems(false);
+        event.setExpToDrop(0);
         long cleanupAt = System.currentTimeMillis() + anchor.bannerDestroyedDespawnSeconds() * 1000L;
         removeSmokeSource(activeEvent);
         activeEvents.put(activeEvent.eventInstanceId(), activeEvent.withSmokeSourceLocation(null).withBannerDestroyed(cleanupAt));
@@ -242,7 +245,8 @@ public final class ActiveAnchorEventService implements Listener {
                     0.5 + driftZ * progress + Math.sin(angle) * curlRadius
             );
             double particleSpread = Math.max(0.01, marker.spread() * 0.2);
-            world.spawnParticle(marker.particle(), location, marker.count(), particleSpread, 0.03, particleSpread, 0.005);
+            world.spawnParticle(marker.particle(), location, marker.count(),
+                    particleSpread, 0.03, particleSpread, 0.005, null, true);
         }
     }
 
@@ -301,12 +305,17 @@ public final class ActiveAnchorEventService implements Listener {
         }
         Block source = ground.getRelative(0, 1, 0);
         if (!ground.getType().isSolid()
+                || isTreeBlock(ground.getType())
                 || Math.abs(source.getY() - bannerY) > 2
                 || source.isLiquid()
                 || (!source.getType().isAir() && !source.isPassable())) {
             return null;
         }
         return source.getLocation();
+    }
+
+    private boolean isTreeBlock(Material material) {
+        return Tag.LEAVES.isTagged(material) || Tag.LOGS.isTagged(material);
     }
 
     private boolean isSmokeSourceStillPresent(Location location, AnchorSmokeMarkerDefinition marker) {
@@ -445,7 +454,9 @@ public final class ActiveAnchorEventService implements Listener {
             }
             ground = ground.getRelative(0, -1, 0);
         }
-        return ground.getType().isSolid() && ground.getY() + 1 == bannerLocation.getBlockY();
+        return ground.getType().isSolid()
+                && !isTreeBlock(ground.getType())
+                && ground.getY() + 1 == bannerLocation.getBlockY();
     }
 
     private boolean isBannerStillPresent(ActiveAnchorEvent activeEvent, Material material) {

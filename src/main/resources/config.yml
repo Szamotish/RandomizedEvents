@@ -1,4 +1,4 @@
-config-version: 3
+config-version: 4
 
 settings:
   enabled: true
@@ -119,9 +119,9 @@ anchor-events:
       particle: CAMPFIRE_COSY_SMOKE
       source-block: CAMPFIRE
       source-radius: 3
-      height: 20
+      height: 36
       interval-seconds: 1
-      points: 24
+      points: 36
       count: 2
       spread: 0.18
     sub-events:
@@ -142,9 +142,9 @@ anchor-events:
       particle: SOUL
       source-block: SOUL_CAMPFIRE
       source-radius: 3
-      height: 20
+      height: 36
       interval-seconds: 1
-      points: 24
+      points: 36
       count: 2
       spread: 0.18
     sub-events:
