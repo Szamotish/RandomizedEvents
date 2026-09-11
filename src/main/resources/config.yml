@@ -1,4 +1,4 @@
-config-version: 4
+config-version: 5
 
 settings:
   enabled: true
@@ -1619,6 +1619,8 @@ events:
     max-distance: 65
     spread-radius: 4
     announcement-radius: 150
+    required:
+      - {class: hunter_ravager_pillager, picks-min: 1, picks-max: 1}
     budget: {min: 8, max: 20}
     selection: {add-chance-start: 1.0, add-chance-decay: 0.35, max-picks: 2}
     pool:
