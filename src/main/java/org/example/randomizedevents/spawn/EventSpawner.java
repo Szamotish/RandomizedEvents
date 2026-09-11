@@ -628,13 +628,14 @@ public final class EventSpawner {
     }
 
     private LivingEntity spawnMob(Location location, MobDefinition definition, Player target, String eventId, String eventInstanceId) {
+        boolean retainedForTarget = shouldRetainForTarget(definition, eventId, target);
         LivingEntity mount = null;
         if (definition.mountType() != null) {
             mount = spawnLiving(location, definition.mountType());
             if (mount != null) {
                 mobRegistry.mark(mount, eventId, eventInstanceId, definition.id() + "_mount", List.of("mount", "no_custom_loot", "hunter_focus"), target);
-                mount.setPersistent(definition.persistent());
-                mount.setRemoveWhenFarAway(!definition.persistent());
+                mount.setPersistent(definition.persistent() || retainedForTarget);
+                mount.setRemoveWhenFarAway(!definition.persistent() && !retainedForTarget);
                 applyNetherSafety(mount, definition);
                 if (mount instanceof Mob mob && target != null) {
                     mob.setTarget(target);
@@ -651,8 +652,8 @@ public final class EventSpawner {
         }
 
         mobRegistry.mark(entity, eventId, eventInstanceId, definition.id(), definition.behaviors(), target);
-        entity.setPersistent(definition.persistent());
-        entity.setRemoveWhenFarAway(!definition.persistent());
+        entity.setPersistent(definition.persistent() || retainedForTarget);
+        entity.setRemoveWhenFarAway(!definition.persistent() && !retainedForTarget);
         entity.setGlowing(definition.glowing());
         entity.setCanPickupItems(false);
 
@@ -685,6 +686,21 @@ public final class EventSpawner {
         }
 
         return entity;
+    }
+
+    private boolean shouldRetainForTarget(MobDefinition definition, String eventId, Player target) {
+        if (target == null) {
+            return false;
+        }
+        if (eventId != null && config.getTargetUnavailableEvents().contains(eventId)) {
+            return true;
+        }
+        for (String behavior : config.getTargetUnavailableBehaviors()) {
+            if (definition.behaviors().stream().anyMatch(behavior::equalsIgnoreCase)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Map<EquipmentSlot, ItemStack> resolveEquipment(Location location, MobDefinition definition) {

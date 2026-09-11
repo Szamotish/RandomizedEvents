@@ -19,6 +19,7 @@ public final class EventMobRegistry {
     private final NamespacedKey mobClassIdKey;
     private final NamespacedKey behaviorsKey;
     private final NamespacedKey targetPlayerKey;
+    private final NamespacedKey targetUnavailableSinceKey;
     private final NamespacedKey lastCombatAtKey;
     private final NamespacedKey spawnedAtKey;
 
@@ -29,6 +30,7 @@ public final class EventMobRegistry {
         this.mobClassIdKey = new NamespacedKey(plugin, "mob_class_id");
         this.behaviorsKey = new NamespacedKey(plugin, "behaviors");
         this.targetPlayerKey = new NamespacedKey(plugin, "target_player");
+        this.targetUnavailableSinceKey = new NamespacedKey(plugin, "target_unavailable_since");
         this.lastCombatAtKey = new NamespacedKey(plugin, "last_combat_at");
         this.spawnedAtKey = new NamespacedKey(plugin, "spawned_at");
     }
@@ -83,6 +85,19 @@ public final class EventMobRegistry {
 
     public String getTargetPlayerId(LivingEntity entity) {
         return entity.getPersistentDataContainer().get(targetPlayerKey, PersistentDataType.STRING);
+    }
+
+    public long getTargetUnavailableSince(LivingEntity entity) {
+        Long value = entity.getPersistentDataContainer().get(targetUnavailableSinceKey, PersistentDataType.LONG);
+        return value == null ? 0L : value;
+    }
+
+    public void setTargetUnavailableSince(LivingEntity entity, long timestamp) {
+        entity.getPersistentDataContainer().set(targetUnavailableSinceKey, PersistentDataType.LONG, timestamp);
+    }
+
+    public void clearTargetUnavailableSince(LivingEntity entity) {
+        entity.getPersistentDataContainer().remove(targetUnavailableSinceKey);
     }
 
     public void markCombat(LivingEntity entity) {

@@ -24,7 +24,7 @@ mvn package
 The plugin jar is built at:
 
 ```text
-target/randomized_events-0.1.6.jar
+target/randomized_events-0.1.7.jar
 ```
 
 ## Install

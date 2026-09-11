@@ -31,7 +31,6 @@ public final class EventScheduler {
     private Instant nextEventAt;
     private ActiveAnchorEventService activeAnchorEventService;
     private final Map<UUID, Long> noPlayersNearbySince = new HashMap<>();
-    private final Map<UUID, Long> targetUnavailableSince = new HashMap<>();
 
     public EventScheduler(JavaPlugin plugin, EventConfigManager config, EventSpawner spawner, EventMobRegistry mobRegistry) {
         this.plugin = plugin;
@@ -158,6 +157,10 @@ public final class EventScheduler {
                 if (!mobRegistry.isEventMob(entity) || isProtectedAnchorMob(entity)) {
                     continue;
                 }
+                if (isTargetBoundCleanupMob(entity)) {
+                    noPlayersNearbySince.remove(entity.getUniqueId());
+                    continue;
+                }
                 if (!entity.getLocation().getNearbyPlayers(config.getNoPlayerDespawnRadius()).isEmpty()) {
                     noPlayersNearbySince.remove(entity.getUniqueId());
                     continue;
@@ -176,7 +179,7 @@ public final class EventScheduler {
 
     private int removeTargetBoundMobsWithUnavailableTarget() {
         if (!config.isDespawnTargetBoundWhenTargetUnavailable()) {
-            targetUnavailableSince.clear();
+            clearTargetUnavailableTimers();
             return 0;
         }
 
@@ -200,20 +203,42 @@ public final class EventScheduler {
                     target = null;
                 }
 
-                if (target != null && target.isOnline() && !target.isDead()) {
-                    targetUnavailableSince.remove(entity.getUniqueId());
+                long unavailableSince = mobRegistry.getTargetUnavailableSince(entity);
+                boolean targetAvailable = target != null
+                        && target.isOnline()
+                        && !target.isDead()
+                        && target.getWorld().equals(entity.getWorld());
+                if (targetAvailable) {
+                    if (unavailableSince > 0L && now - unavailableSince >= delayMillis) {
+                        entity.remove();
+                        removed++;
+                        continue;
+                    }
+                    mobRegistry.clearTargetUnavailableSince(entity);
                     continue;
                 }
 
-                long since = targetUnavailableSince.computeIfAbsent(entity.getUniqueId(), ignored -> now);
-                if (now - since >= delayMillis && !isInCombat(entity, now, combatGraceMillis)) {
+                if (unavailableSince <= 0L) {
+                    mobRegistry.setTargetUnavailableSince(entity, now);
+                    continue;
+                }
+                if (now - unavailableSince >= delayMillis && !isInCombat(entity, now, combatGraceMillis)) {
                     entity.remove();
-                    targetUnavailableSince.remove(entity.getUniqueId());
                     removed++;
                 }
             }
         }
         return removed;
+    }
+
+    private void clearTargetUnavailableTimers() {
+        for (World world : Bukkit.getWorlds()) {
+            for (LivingEntity entity : world.getLivingEntities()) {
+                if (mobRegistry.isEventMob(entity)) {
+                    mobRegistry.clearTargetUnavailableSince(entity);
+                }
+            }
+        }
     }
 
     private boolean isTargetBoundCleanupMob(LivingEntity entity) {

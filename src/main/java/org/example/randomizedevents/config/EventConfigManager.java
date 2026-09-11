@@ -35,7 +35,7 @@ import java.util.logging.Level;
 
 public final class EventConfigManager {
 
-    private static final int CURRENT_CONFIG_VERSION = 5;
+    private static final int CURRENT_CONFIG_VERSION = 6;
 
     private final JavaPlugin plugin;
     private final Map<String, EventDefinition> events = new HashMap<>();
@@ -227,6 +227,7 @@ public final class EventConfigManager {
                     "picks-max", 1
             )));
         }
+        replaceInt(data, "settings.despawn.target-bound-when-target-unavailable.delay-seconds", 5, 300);
 
         List<String> shamanBehaviors = new ArrayList<>(data.getStringList("mob-classes.shaman_evoker.behaviors"));
         if (shamanBehaviors.stream().noneMatch("no_vex_summon"::equalsIgnoreCase)) {

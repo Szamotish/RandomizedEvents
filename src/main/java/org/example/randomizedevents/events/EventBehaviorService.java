@@ -86,7 +86,10 @@ public final class EventBehaviorService {
         }
         try {
             Player target = Bukkit.getPlayer(UUID.fromString(rawTargetId));
-            if (target != null && target.isOnline() && !target.isDead()) {
+            if (target != null
+                    && target.isOnline()
+                    && !target.isDead()
+                    && target.getWorld().equals(entity.getWorld())) {
                 mob.setTarget(target);
             }
         } catch (IllegalArgumentException ignored) {

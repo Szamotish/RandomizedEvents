@@ -1,4 +1,4 @@
-config-version: 5
+config-version: 6
 
 settings:
   enabled: true
@@ -16,7 +16,7 @@ settings:
       delay-seconds: 180
     target-bound-when-target-unavailable:
       enabled: true
-      delay-seconds: 5
+      delay-seconds: 300
       combat-grace-seconds: 5
       behaviors:
         - hunter_focus
