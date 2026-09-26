@@ -6,7 +6,8 @@ Paper plugin for Minecraft `26.2` that spawns randomized hostile and non-hostile
 
 - Random event scheduler with configurable intervals.
 - Custom event mob classes with gear, attributes, loot, and behavior flags.
-- Slow world progression for gear, mob stats, event budgets, event weights, mob counts, and loot.
+- Staged gear progression plus a 48-stage world difficulty curve for mob stats, event budgets, and mob counts.
+- Persistent boss pity, fixed unique-encounter odds, and periodic boosted trader rolls.
 - Boss and unique encounters with protected boss tokens.
 - Event trader with emerald and boss-token trades.
 - Active enemy camp and cursed ritual anchors with banners and recurring sub-events.
@@ -31,7 +32,7 @@ target/randomized_events-0.1.7.jar
 
 Copy the built jar into the Paper server `plugins` directory and restart the server.
 
-Runtime data files such as boss kills, scoreboard preferences, and active anchor events are created inside the plugin data folder.
+Runtime data files such as boss kills, event-selection pity, scoreboard preferences, and active anchor events are created inside the plugin data folder.
 
 ## Commands
 
@@ -45,6 +46,7 @@ Runtime data files such as boss kills, scoreboard preferences, and active anchor
 - `/randomevents gearstage [player]` - show current gear and world scaling stages.
 - `/randomevents setstage <gear|world|both> <stage|auto>` - override progression stages.
 - `/randomevents list <events|mobs>` - list configured ids.
+- `/randomevents locate` - list active event locations (admin only).
 - `/randomevents cleanup` - remove event mobs and active anchor events.
 
 Admin commands require `randomizedevents.admin`.

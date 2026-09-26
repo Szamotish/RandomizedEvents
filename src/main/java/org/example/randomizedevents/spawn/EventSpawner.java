@@ -36,6 +36,7 @@ import org.example.randomizedevents.config.GearStep;
 import org.example.randomizedevents.config.MobDefinition;
 import org.example.randomizedevents.config.SpawnMode;
 import org.example.randomizedevents.config.TradeDefinition;
+import org.example.randomizedevents.data.EventSelectionState;
 import org.example.randomizedevents.events.ActiveAnchorEventService;
 import org.example.randomizedevents.mobs.EventMobRegistry;
 
@@ -53,6 +54,7 @@ public final class EventSpawner {
     private final JavaPlugin plugin;
     private final EventConfigManager config;
     private final EventMobRegistry mobRegistry;
+    private final EventSelectionState selectionState;
     private final Random random = new Random();
     private ActiveAnchorEventService activeAnchorEventService;
 
@@ -60,10 +62,19 @@ public final class EventSpawner {
         this.plugin = plugin;
         this.config = config;
         this.mobRegistry = mobRegistry;
+        this.selectionState = new EventSelectionState(plugin);
     }
 
     public void setActiveAnchorEventService(ActiveAnchorEventService activeAnchorEventService) {
         this.activeAnchorEventService = activeAnchorEventService;
+    }
+
+    public int getConsecutiveNonBossEvents() {
+        return selectionState.getConsecutiveNonBossEvents();
+    }
+
+    public double getCurrentBossChance() {
+        return config.getBossChance(selectionState.getConsecutiveNonBossEvents());
     }
 
     public SpawnResult spawnRandomEvent() {
@@ -81,12 +92,13 @@ public final class EventSpawner {
         int attempts = Math.max(8, Math.min(24, candidates.size() * 4));
         for (int i = 0; i < attempts; i++) {
             Player target = candidates.get(random.nextInt(candidates.size()));
-            EventDefinition event = weightedRandomEvent(enabledEvents, target.getWorld());
+            EventDefinition event = selectRandomEvent(enabledEvents, target.getWorld());
             if (event == null) {
                 continue;
             }
             SpawnResult result = spawnEvent(event, target);
             if (result.success()) {
+                recordRandomEvent(event);
                 return result;
             }
             lastFailure = result.reason();
@@ -241,6 +253,7 @@ public final class EventSpawner {
             }
             LivingEntity entity = spawnMob(spawnLocation, mobClass, target, eventId, eventInstanceId);
             if (entity != null) {
+                mobRegistry.setEventOrigin(entity, center);
                 spawned++;
             }
         }
@@ -384,6 +397,54 @@ public final class EventSpawner {
             }
         }
         return events.get(events.size() - 1);
+    }
+
+    private EventDefinition selectRandomEvent(List<EventDefinition> events, World world) {
+        List<EventDefinition> bossEvents = events.stream()
+                .filter(event -> config.isBossEvent(event.id()))
+                .toList();
+        int nonBossStreak = selectionState.getConsecutiveNonBossEvents();
+        double bossChance = bossEvents.isEmpty() ? 0.0 : config.getBossChance(nonBossStreak);
+        if (bossChance >= 1.0) {
+            return weightedRandomEvent(bossEvents, world);
+        }
+
+        List<EventDefinition> uniqueEvents = events.stream()
+                .filter(event -> config.isUniqueEvent(event.id()))
+                .toList();
+        if (!uniqueEvents.isEmpty() && random.nextDouble() < config.getUniqueEventChance()) {
+            return weightedRandomEvent(uniqueEvents, world);
+        }
+
+        List<EventDefinition> traderEvents = events.stream()
+                .filter(event -> config.isTraderEvent(event.id()))
+                .toList();
+        if (!traderEvents.isEmpty()) {
+            boolean boosted = selectionState.consumeTraderBoostIfDue(world, config.getTraderBoostIntervalDays());
+            double traderChance = boosted ? config.getTraderBoostChance() : config.getTraderBaseChance();
+            if (random.nextDouble() < traderChance) {
+                return weightedRandomEvent(traderEvents, world);
+            }
+        }
+
+        if (!bossEvents.isEmpty() && random.nextDouble() < bossChance) {
+            return weightedRandomEvent(bossEvents, world);
+        }
+
+        List<EventDefinition> regularEvents = events.stream()
+                .filter(event -> !config.isBossPityEnabled() || !config.isBossEvent(event.id()))
+                .filter(event -> !config.isUniqueEvent(event.id()))
+                .filter(event -> !config.isTraderEvent(event.id()))
+                .toList();
+        return weightedRandomEvent(regularEvents.isEmpty() ? events : regularEvents, world);
+    }
+
+    private void recordRandomEvent(EventDefinition event) {
+        if (config.isBossEvent(event.id())) {
+            selectionState.recordBossEvent();
+        } else {
+            selectionState.recordNonBossEvent();
+        }
     }
 
     private double scaledEventWeight(EventDefinition event, World world) {

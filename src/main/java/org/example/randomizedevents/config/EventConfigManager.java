@@ -35,7 +35,7 @@ import java.util.logging.Level;
 
 public final class EventConfigManager {
 
-    private static final int CURRENT_CONFIG_VERSION = 6;
+    private static final int CURRENT_CONFIG_VERSION = 7;
 
     private final JavaPlugin plugin;
     private final Map<String, EventDefinition> events = new HashMap<>();
@@ -98,6 +98,18 @@ public final class EventConfigManager {
     private Set<String> targetUnavailableEvents;
     private Set<Biome> disabledBiomes;
     private Set<String> disabledWorlds;
+    private Set<String> bossEvents;
+    private Set<String> uniqueEvents;
+    private Set<String> traderEvents;
+    private boolean bossPityEnabled;
+    private double bossBaseChance;
+    private double bossChancePerNonBoss;
+    private double bossMaxChance;
+    private int bossGuaranteedAfter;
+    private double uniqueEventChance;
+    private double traderBaseChance;
+    private int traderBoostIntervalDays;
+    private double traderBoostChance;
     private String prefix;
 
     public EventConfigManager(JavaPlugin plugin) {
@@ -141,22 +153,22 @@ public final class EventConfigManager {
         this.gearStageVariance = Math.max(0, plugin.getConfig().getInt("settings.gear-scaling.random-stage-variance", 1));
         this.gearStageOverride = getStageOverride("settings.gear-scaling.stage-override");
         this.daysPerWorldStage = Math.max(1, plugin.getConfig().getInt("settings.world-scaling.days-per-stage", this.daysPerGearStage));
-        this.maxWorldStage = Math.max(0, plugin.getConfig().getInt("settings.world-scaling.max-stage", this.maxGearStage));
+        this.maxWorldStage = Math.max(0, plugin.getConfig().getInt("settings.world-scaling.max-stage", 48));
         this.worldStageOverride = getStageOverride("settings.world-scaling.stage-override");
         this.healthBonusPerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.health-bonus-per-stage", 0.0125));
-        this.maxHealthBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-health-bonus", 0.30));
+        this.maxHealthBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-health-bonus", 0.60));
         this.attackDamageBonusPerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.attack-damage-bonus-per-stage", 0.01));
-        this.maxAttackDamageBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-attack-damage-bonus", 0.24));
+        this.maxAttackDamageBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-attack-damage-bonus", 0.48));
         this.armorBonusPerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.armor-bonus-per-stage", 0.008));
-        this.maxArmorBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-armor-bonus", 0.18));
+        this.maxArmorBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-armor-bonus", 0.32));
         this.movementSpeedBonusPerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.movement-speed-bonus-per-stage", 0.002));
-        this.maxMovementSpeedBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-movement-speed-bonus", 0.05));
+        this.maxMovementSpeedBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-movement-speed-bonus", 0.08));
         this.followRangeBonusPerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.follow-range-bonus-per-stage", 0.006));
-        this.maxFollowRangeBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-follow-range-bonus", 0.15));
+        this.maxFollowRangeBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.stats.max-follow-range-bonus", 0.25));
         this.budgetBonusPerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.event-budget.bonus-per-stage", 0.015));
-        this.maxBudgetBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.event-budget.max-bonus", 0.35));
+        this.maxBudgetBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.event-budget.max-bonus", 0.70));
         this.countExtraChancePerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.mob-count.extra-chance-per-stage", 0.006));
-        this.maxCountExtraChance = clampChance(plugin.getConfig().getDouble("settings.world-scaling.mob-count.max-extra-chance", 0.15));
+        this.maxCountExtraChance = clampChance(plugin.getConfig().getDouble("settings.world-scaling.mob-count.max-extra-chance", 0.28));
         this.maxExtraMobsPerClass = Math.max(0, plugin.getConfig().getInt("settings.world-scaling.mob-count.max-extra-mobs-per-class", 1));
         this.lootChanceBonusPerWorldStage = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.loot.chance-bonus-per-stage", 0.003));
         this.maxLootChanceBonus = Math.max(0.0, plugin.getConfig().getDouble("settings.world-scaling.loot.max-chance-bonus", 0.08));
@@ -172,6 +184,18 @@ public final class EventConfigManager {
                 .map(this::parseBiome)
                 .filter(Objects::nonNull)
                 .toList());
+        this.bossEvents = normalizedIdSet("settings.event-selection.boss-events");
+        this.uniqueEvents = normalizedIdSet("settings.event-selection.unique-events");
+        this.traderEvents = normalizedIdSet("settings.event-selection.trader-events");
+        this.bossPityEnabled = plugin.getConfig().getBoolean("settings.event-selection.boss-pity.enabled", true);
+        this.bossBaseChance = clampChance(plugin.getConfig().getDouble("settings.event-selection.boss-pity.base-chance", 0.06));
+        this.bossChancePerNonBoss = Math.max(0.0, plugin.getConfig().getDouble("settings.event-selection.boss-pity.chance-per-non-boss", 0.025));
+        this.bossMaxChance = clampChance(plugin.getConfig().getDouble("settings.event-selection.boss-pity.max-chance", 0.50));
+        this.bossGuaranteedAfter = Math.max(0, plugin.getConfig().getInt("settings.event-selection.boss-pity.guaranteed-after", 16));
+        this.uniqueEventChance = clampChance(plugin.getConfig().getDouble("settings.event-selection.unique-chance", 0.01));
+        this.traderBaseChance = clampChance(plugin.getConfig().getDouble("settings.event-selection.trader.base-chance", 0.04));
+        this.traderBoostIntervalDays = Math.max(0, plugin.getConfig().getInt("settings.event-selection.trader.boost-interval-days", 10));
+        this.traderBoostChance = clampChance(plugin.getConfig().getDouble("settings.event-selection.trader.boost-chance", 0.75));
         this.prefix = color(plugin.getConfig().getString("messages.prefix", "&8[&cEvents&8]&r "));
 
         gearProfiles.clear();
@@ -229,6 +253,36 @@ public final class EventConfigManager {
         }
         replaceInt(data, "settings.despawn.target-bound-when-target-unavailable.delay-seconds", 5, 300);
 
+        replaceInt(data, "settings.world-scaling.max-stage", 24, 48);
+        replaceDouble(data, "settings.world-scaling.stats.max-health-bonus", 0.30, 0.60);
+        replaceDouble(data, "settings.world-scaling.stats.max-attack-damage-bonus", 0.24, 0.48);
+        replaceDouble(data, "settings.world-scaling.stats.max-armor-bonus", 0.18, 0.32);
+        replaceDouble(data, "settings.world-scaling.stats.max-movement-speed-bonus", 0.05, 0.08);
+        replaceDouble(data, "settings.world-scaling.stats.max-follow-range-bonus", 0.15, 0.25);
+        replaceDouble(data, "settings.world-scaling.event-budget.max-bonus", 0.35, 0.70);
+        replaceDouble(data, "settings.world-scaling.mob-count.max-extra-chance", 0.15, 0.28);
+
+        setIfMissing(data, "settings.event-selection.boss-events", List.of(
+                "solo_boss", "horde_king_party", "patrol_captain_party", "swarm_mother_party", "deep_water_horror"));
+        setIfMissing(data, "settings.event-selection.unique-events", List.of("unique_encounter"));
+        setIfMissing(data, "settings.event-selection.trader-events", List.of("loot_event"));
+        setIfMissing(data, "settings.event-selection.boss-pity.enabled", true);
+        setIfMissing(data, "settings.event-selection.boss-pity.base-chance", 0.06);
+        setIfMissing(data, "settings.event-selection.boss-pity.chance-per-non-boss", 0.025);
+        setIfMissing(data, "settings.event-selection.boss-pity.max-chance", 0.50);
+        setIfMissing(data, "settings.event-selection.boss-pity.guaranteed-after", 16);
+        setIfMissing(data, "settings.event-selection.unique-chance", 0.01);
+        setIfMissing(data, "settings.event-selection.trader.base-chance", 0.04);
+        setIfMissing(data, "settings.event-selection.trader.boost-interval-days", 10);
+        setIfMissing(data, "settings.event-selection.trader.boost-chance", 0.75);
+
+        if (data.isConfigurationSection("events.enemy_camp")) {
+            List<Map<?, ?>> campRequired = new ArrayList<>(data.getMapList("events.enemy_camp.required"));
+            addRequiredEntryIfMissing(campRequired, "guard", 3, 4);
+            addRequiredEntryIfMissing(campRequired, "archer_skeleton", 2, 3);
+            data.set("events.enemy_camp.required", campRequired);
+        }
+
         List<String> shamanBehaviors = new ArrayList<>(data.getStringList("mob-classes.shaman_evoker.behaviors"));
         if (shamanBehaviors.stream().noneMatch("no_vex_summon"::equalsIgnoreCase)) {
             shamanBehaviors.add("no_vex_summon");
@@ -256,6 +310,19 @@ public final class EventConfigManager {
         if (oldValue.equalsIgnoreCase(data.getString(path, ""))) {
             data.set(path, newValue);
         }
+    }
+
+    private void setIfMissing(FileConfiguration data, String path, Object value) {
+        if (!data.contains(path, true)) {
+            data.set(path, value);
+        }
+    }
+
+    private void addRequiredEntryIfMissing(List<Map<?, ?>> entries, String classId, int minPicks, int maxPicks) {
+        if (entries.stream().anyMatch(entry -> classId.equalsIgnoreCase(String.valueOf(entry.get("class"))))) {
+            return;
+        }
+        entries.add(Map.of("class", classId, "picks-min", minPicks, "picks-max", maxPicks));
     }
 
     private void loadGearProfiles() {
@@ -893,6 +960,13 @@ public final class EventConfigManager {
         return value.toLowerCase(Locale.ROOT).replace('-', '_');
     }
 
+    private Set<String> normalizedIdSet(String path) {
+        return Set.copyOf(plugin.getConfig().getStringList(path).stream()
+                .map(this::normalizeId)
+                .filter(Objects::nonNull)
+                .toList());
+    }
+
     private String getString(Map<?, ?> map, String key, String fallback) {
         Object value = map.get(key);
         return value == null ? fallback : String.valueOf(value);
@@ -1232,6 +1306,48 @@ public final class EventConfigManager {
 
     public Set<String> getTargetUnavailableEvents() {
         return targetUnavailableEvents;
+    }
+
+    public boolean isBossEvent(String eventId) {
+        return bossEvents.contains(normalizeId(eventId));
+    }
+
+    public boolean isUniqueEvent(String eventId) {
+        return uniqueEvents.contains(normalizeId(eventId));
+    }
+
+    public boolean isTraderEvent(String eventId) {
+        return traderEvents.contains(normalizeId(eventId));
+    }
+
+    public boolean isBossPityEnabled() {
+        return bossPityEnabled;
+    }
+
+    public double getBossChance(int consecutiveNonBossEvents) {
+        if (!bossPityEnabled) {
+            return 0.0;
+        }
+        if (bossGuaranteedAfter > 0 && consecutiveNonBossEvents >= bossGuaranteedAfter) {
+            return 1.0;
+        }
+        return Math.min(bossMaxChance, bossBaseChance + consecutiveNonBossEvents * bossChancePerNonBoss);
+    }
+
+    public double getUniqueEventChance() {
+        return uniqueEventChance;
+    }
+
+    public double getTraderBaseChance() {
+        return traderBaseChance;
+    }
+
+    public int getTraderBoostIntervalDays() {
+        return traderBoostIntervalDays;
+    }
+
+    public double getTraderBoostChance() {
+        return traderBoostChance;
     }
 
     public boolean isWorldDisabled(String worldName) {

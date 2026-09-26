@@ -1,6 +1,7 @@
 package org.example.randomizedevents.mobs;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
@@ -22,6 +23,10 @@ public final class EventMobRegistry {
     private final NamespacedKey targetUnavailableSinceKey;
     private final NamespacedKey lastCombatAtKey;
     private final NamespacedKey spawnedAtKey;
+    private final NamespacedKey eventOriginWorldKey;
+    private final NamespacedKey eventOriginXKey;
+    private final NamespacedKey eventOriginYKey;
+    private final NamespacedKey eventOriginZKey;
 
     public EventMobRegistry(JavaPlugin plugin) {
         this.eventMobKey = new NamespacedKey(plugin, "event_mob");
@@ -33,6 +38,10 @@ public final class EventMobRegistry {
         this.targetUnavailableSinceKey = new NamespacedKey(plugin, "target_unavailable_since");
         this.lastCombatAtKey = new NamespacedKey(plugin, "last_combat_at");
         this.spawnedAtKey = new NamespacedKey(plugin, "spawned_at");
+        this.eventOriginWorldKey = new NamespacedKey(plugin, "event_origin_world");
+        this.eventOriginXKey = new NamespacedKey(plugin, "event_origin_x");
+        this.eventOriginYKey = new NamespacedKey(plugin, "event_origin_y");
+        this.eventOriginZKey = new NamespacedKey(plugin, "event_origin_z");
     }
 
     public void mark(LivingEntity entity, String eventId, String mobClassId, Iterable<String> behaviors, Player target) {
@@ -112,6 +121,34 @@ public final class EventMobRegistry {
     public long getSpawnedAt(LivingEntity entity) {
         Long value = entity.getPersistentDataContainer().get(spawnedAtKey, PersistentDataType.LONG);
         return value == null ? 0L : value;
+    }
+
+    public void setEventOrigin(LivingEntity entity, Location origin) {
+        if (origin == null || origin.getWorld() == null) {
+            return;
+        }
+        PersistentDataContainer data = entity.getPersistentDataContainer();
+        data.set(eventOriginWorldKey, PersistentDataType.STRING, origin.getWorld().getUID().toString());
+        data.set(eventOriginXKey, PersistentDataType.INTEGER, origin.getBlockX());
+        data.set(eventOriginYKey, PersistentDataType.INTEGER, origin.getBlockY());
+        data.set(eventOriginZKey, PersistentDataType.INTEGER, origin.getBlockZ());
+    }
+
+    public Location getEventOrigin(LivingEntity entity) {
+        PersistentDataContainer data = entity.getPersistentDataContainer();
+        String rawWorldId = data.get(eventOriginWorldKey, PersistentDataType.STRING);
+        Integer x = data.get(eventOriginXKey, PersistentDataType.INTEGER);
+        Integer y = data.get(eventOriginYKey, PersistentDataType.INTEGER);
+        Integer z = data.get(eventOriginZKey, PersistentDataType.INTEGER);
+        if (rawWorldId == null || x == null || y == null || z == null) {
+            return null;
+        }
+        try {
+            World world = Bukkit.getWorld(UUID.fromString(rawWorldId));
+            return world == null ? null : new Location(world, x, y, z);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     public int removeAllEventMobs() {

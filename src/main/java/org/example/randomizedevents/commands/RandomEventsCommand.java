@@ -2,12 +2,14 @@ package org.example.randomizedevents.commands;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.example.randomizedevents.RandomizedEvents;
 import org.example.randomizedevents.bounty.BountyShopService;
 import org.example.randomizedevents.config.EventConfigManager;
@@ -16,6 +18,7 @@ import org.example.randomizedevents.config.MobDefinition;
 import org.example.randomizedevents.data.BossKillScoreboardService;
 import org.example.randomizedevents.data.BossKillTracker;
 import org.example.randomizedevents.events.ActiveAnchorEventService;
+import org.example.randomizedevents.events.ActiveEventLocation;
 import org.example.randomizedevents.mobs.EventMobRegistry;
 import org.example.randomizedevents.spawn.EventScheduler;
 import org.example.randomizedevents.spawn.EventSpawner;
@@ -23,8 +26,10 @@ import org.example.randomizedevents.spawn.SpawnResult;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class RandomEventsCommand implements CommandExecutor, TabCompleter {
 
@@ -81,6 +86,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
             case "gearstage" -> gearStage(sender, args);
             case "setstage" -> setStage(sender, args);
             case "list" -> list(sender, args);
+            case "locate" -> locate(sender);
             case "bountyshop" -> bountyShop(sender, args);
             case "cleanup" -> cleanup(sender);
             default -> {
@@ -102,6 +108,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         sender.sendMessage(ChatColor.AQUA + "/" + label + " gearstage [player]" + ChatColor.WHITE + " - Show scaling stages");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " setstage <gear|world|both> <stage|auto>" + ChatColor.WHITE + " - Override scaling stage");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " list <events|mobs>" + ChatColor.WHITE + " - List configured ids");
+        sender.sendMessage(ChatColor.AQUA + "/" + label + " locate" + ChatColor.WHITE + " - Show active event locations");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " bountyshop <status|rebuild|movehere|remove>" + ChatColor.WHITE + " - Manage the Hit Broker");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " cleanup" + ChatColor.WHITE + " - Remove event mobs");
         sender.sendMessage(ChatColor.AQUA + "/" + label + " bossboard [on|off|toggle]" + ChatColor.WHITE + " - Toggle your boss kill board");
@@ -126,6 +133,11 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         sender.sendMessage(ChatColor.GRAY + "Loaded gear profiles: " + ChatColor.WHITE + config.getGearProfiles().size());
         sender.sendMessage(ChatColor.GRAY + "Loaded events: " + ChatColor.WHITE + config.getEvents().size());
         sender.sendMessage(ChatColor.GRAY + "Enabled events: " + ChatColor.WHITE + config.getEnabledEvents().size());
+        if (config.isBossPityEnabled()) {
+            sender.sendMessage(ChatColor.GRAY + "Non-boss event streak: " + ChatColor.WHITE + spawner.getConsecutiveNonBossEvents());
+            sender.sendMessage(ChatColor.GRAY + "Current boss chance: " + ChatColor.WHITE
+                    + Math.round(spawner.getCurrentBossChance() * 1000.0) / 10.0 + "%");
+        }
         sender.sendMessage(ChatColor.GRAY + "Next random event: " + ChatColor.WHITE + next.toSeconds() + "s");
         if (sender instanceof Player player) {
             sender.sendMessage(ChatColor.GRAY + "Gear stage: " + ChatColor.WHITE + config.getGearScalingStage(player.getWorld()));
@@ -332,6 +344,50 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         sender.sendMessage(ChatColor.GREEN + "Removed " + removed + " event mob(s) and " + anchors + " active anchor event(s).");
     }
 
+    private void locate(CommandSender sender) {
+        Map<String, LocatedEvent> activeEvents = new HashMap<>();
+        for (World world : Bukkit.getWorlds()) {
+            for (LivingEntity entity : world.getLivingEntities()) {
+                if (!mobRegistry.isEventMob(entity)) {
+                    continue;
+                }
+                String eventInstanceId = mobRegistry.getEventInstanceId(entity);
+                String eventId = mobRegistry.getEventId(entity);
+                if (eventInstanceId == null || eventId == null) {
+                    continue;
+                }
+                Location origin = mobRegistry.getEventOrigin(entity);
+                activeEvents.compute(eventInstanceId, (ignored, current) -> current == null
+                        ? new LocatedEvent(eventId, origin == null ? entity.getLocation() : origin, 1, false)
+                        : new LocatedEvent(current.eventId(), current.location(), current.mobCount() + 1, current.anchor()));
+            }
+        }
+
+        for (ActiveEventLocation anchor : activeAnchorEventService.getActiveEventLocations()) {
+            activeEvents.compute(anchor.eventInstanceId(), (ignored, current) -> current == null
+                    ? new LocatedEvent(anchor.eventId(), anchor.location(), 0, true)
+                    : new LocatedEvent(anchor.eventId(), anchor.location(), current.mobCount(), true));
+        }
+
+        if (activeEvents.isEmpty()) {
+            sender.sendMessage(ChatColor.YELLOW + "There are no active events.");
+            return;
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "Active events:");
+        activeEvents.values().stream()
+                .sorted((left, right) -> formatLocation(left.location()).compareToIgnoreCase(formatLocation(right.location())))
+                .forEach(activeEvent -> {
+                    EventDefinition definition = config.getEvent(activeEvent.eventId());
+                    String displayName = definition == null ? activeEvent.eventId() : definition.displayName();
+                    String anchorLabel = activeEvent.anchor() ? ChatColor.DARK_GRAY + " anchor," : "";
+                    sender.sendMessage(ChatColor.GRAY + "- " + ChatColor.WHITE + displayName
+                            + ChatColor.DARK_GRAY + " [" + activeEvent.eventId() + "] "
+                            + ChatColor.AQUA + formatLocation(activeEvent.location())
+                            + anchorLabel + ChatColor.DARK_GRAY + " " + activeEvent.mobCount() + " mob(s)");
+                });
+    }
+
     private void bountyShop(CommandSender sender, String[] args) {
         if (args.length < 2 || "status".equalsIgnoreCase(args[1])) {
             org.bukkit.Location location = bountyShopService.shopLocation();
@@ -367,7 +423,7 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
         }
     }
 
-    private String formatLocation(org.bukkit.Location location) {
+    private String formatLocation(Location location) {
         if (location == null || location.getWorld() == null) {
             return "none";
         }
@@ -383,12 +439,15 @@ public final class RandomEventsCommand implements CommandExecutor, TabCompleter 
                 || "scoreboard".equalsIgnoreCase(subcommand);
     }
 
+    private record LocatedEvent(String eventId, Location location, int mobCount, boolean anchor) {
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> values = new ArrayList<>(List.of("bossboard", "bosskills", "scoreboard"));
             if (sender.hasPermission("randomizedevents.admin")) {
-                values.addAll(List.of("reload", "status", "start", "stop", "run", "spawnclass", "gearstage", "setstage", "list", "bountyshop", "cleanup"));
+                values.addAll(List.of("reload", "status", "start", "stop", "run", "spawnclass", "gearstage", "setstage", "list", "locate", "bountyshop", "cleanup"));
             }
             return partial(args[0], values);
         }

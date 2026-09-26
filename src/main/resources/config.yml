@@ -1,4 +1,4 @@
-config-version: 6
+config-version: 7
 
 settings:
   enabled: true
@@ -41,25 +41,25 @@ settings:
   world-scaling:
     enabled: true
     days-per-stage: 4
-    max-stage: 24
+    max-stage: 48
     stage-override: -1
     stats:
       health-bonus-per-stage: 0.0125
-      max-health-bonus: 0.30
+      max-health-bonus: 0.60
       attack-damage-bonus-per-stage: 0.01
-      max-attack-damage-bonus: 0.24
+      max-attack-damage-bonus: 0.48
       armor-bonus-per-stage: 0.008
-      max-armor-bonus: 0.18
+      max-armor-bonus: 0.32
       movement-speed-bonus-per-stage: 0.002
-      max-movement-speed-bonus: 0.05
+      max-movement-speed-bonus: 0.08
       follow-range-bonus-per-stage: 0.006
-      max-follow-range-bonus: 0.15
+      max-follow-range-bonus: 0.25
     event-budget:
       bonus-per-stage: 0.015
-      max-bonus: 0.35
+      max-bonus: 0.70
     mob-count:
       extra-chance-per-stage: 0.006
-      max-extra-chance: 0.15
+      max-extra-chance: 0.28
       max-extra-mobs-per-class: 1
     loot:
       chance-bonus-per-stage: 0.003
@@ -70,6 +70,28 @@ settings:
   interval-seconds:
     min: 1800
     max: 7200
+  event-selection:
+    boss-events:
+      - solo_boss
+      - horde_king_party
+      - patrol_captain_party
+      - swarm_mother_party
+      - deep_water_horror
+    unique-events:
+      - unique_encounter
+    trader-events:
+      - loot_event
+    boss-pity:
+      enabled: true
+      base-chance: 0.06
+      chance-per-non-boss: 0.025
+      max-chance: 0.50
+      guaranteed-after: 16
+    unique-chance: 0.01
+    trader:
+      base-chance: 0.04
+      boost-interval-days: 10
+      boost-chance: 0.75
 
 bounty-shop:
   enabled: true
@@ -1494,6 +1516,8 @@ events:
     lightning-marker: true
     required:
       - {class: elite_piglin_brute, picks-min: 1, picks-max: 1}
+      - {class: guard, picks-min: 3, picks-max: 4}
+      - {class: archer_skeleton, picks-min: 2, picks-max: 3}
     budget: {min: 16, max: 28}
     selection: {add-chance-start: 0.92, add-chance-decay: 0.62, max-picks: 9}
     pool:
@@ -1827,7 +1851,7 @@ events:
     display-name: 'Unique Encounter'
     announcement-message: "&4It's here. Run."
     weight: 0.3
-    scaling: {weight-change-per-stage: 0.004, max-weight-change: 0.10}
+    scaling: {weight-change-per-stage: 0.0, max-weight-change: 0.0}
     min-distance: 60
     max-distance: 130
     spread-radius: 4

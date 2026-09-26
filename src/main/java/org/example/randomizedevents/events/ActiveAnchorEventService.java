@@ -96,6 +96,15 @@ public final class ActiveAnchorEventService implements Listener {
         return removed;
     }
 
+    public List<ActiveEventLocation> getActiveEventLocations() {
+        return activeEvents.values().stream()
+                .map(activeEvent -> new ActiveEventLocation(
+                        activeEvent.eventId(),
+                        activeEvent.eventInstanceId(),
+                        activeEvent.bannerLocation().clone()))
+                .toList();
+    }
+
     public boolean register(EventDefinition event, Location center, String eventInstanceId) {
         AnchorEventDefinition anchor = config.getAnchorEvent(event.id());
         if (anchor == null || center.getWorld() == null) {
