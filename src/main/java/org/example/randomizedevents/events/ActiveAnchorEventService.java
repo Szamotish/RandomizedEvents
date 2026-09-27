@@ -15,9 +15,11 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.util.Vector;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -38,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public final class ActiveAnchorEventService implements Listener {
@@ -131,7 +134,8 @@ public final class ActiveAnchorEventService implements Listener {
                 smokeSourceLocation,
                 now + anchor.subEventIntervalSeconds() * 1000L,
                 0L,
-                0L
+                0L,
+                null
         ));
         save();
         return true;
@@ -203,6 +207,9 @@ public final class ActiveAnchorEventService implements Listener {
         if (activeEvent == null || activeEvent.bannerDestroyed()) {
             return;
         }
+        if (player.getUniqueId().equals(activeEvent.provokedPlayerId())) {
+            return;
+        }
         AnchorEventDefinition anchor = config.getAnchorEvent(activeEvent.eventId());
         if (anchor == null || isWithinRadius(player.getLocation(), activeEvent.bannerLocation(), anchor.guardAwakeRadius())) {
             return;
@@ -210,6 +217,41 @@ public final class ActiveAnchorEventService implements Listener {
         event.setCancelled(true);
         if (entity instanceof Mob mob) {
             mob.setTarget(null);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onAnchorMobDamagedByProjectile(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity entity)
+                || !(event.getDamager() instanceof Projectile projectile)
+                || !(projectile.getShooter() instanceof Player attacker)) {
+            return;
+        }
+        ActiveAnchorEvent activeEvent = activeEvents.get(mobRegistry.getEventInstanceId(entity));
+        if (activeEvent == null || activeEvent.bannerDestroyed()) {
+            return;
+        }
+        provokeAnchorEvent(activeEvent, attacker);
+    }
+
+    private void provokeAnchorEvent(ActiveAnchorEvent activeEvent, Player attacker) {
+        boolean newlyProvoked = !attacker.getUniqueId().equals(activeEvent.provokedPlayerId());
+        ActiveAnchorEvent provokedEvent = activeEvent.withProvokedPlayerId(attacker.getUniqueId());
+        activeEvents.put(activeEvent.eventInstanceId(), provokedEvent);
+        save();
+
+        World world = activeEvent.bannerLocation().getWorld();
+        if (world != null) {
+            for (LivingEntity entity : world.getLivingEntities()) {
+                if (activeEvent.eventInstanceId().equals(mobRegistry.getEventInstanceId(entity))
+                        && !entity.isDead()
+                        && entity instanceof Mob mob) {
+                    mob.setTarget(attacker);
+                }
+            }
+        }
+        if (newlyProvoked) {
+            attacker.sendMessage(config.inlineMessage("&cThe anchor guards have been provoked and are coming for you."));
         }
     }
 
@@ -375,9 +417,22 @@ public final class ActiveAnchorEventService implements Listener {
             return;
         }
 
+        Player provokedPlayer = resolveProvokedPlayer(activeEvent, world);
+        if (activeEvent.provokedPlayerId() != null && provokedPlayer == null) {
+            activeEvent = activeEvent.withProvokedPlayerId(null);
+            activeEvents.put(activeEvent.eventInstanceId(), activeEvent);
+            save();
+        }
+
         double leashRadiusSquared = anchor.guardLeashRadius() * anchor.guardLeashRadius();
         for (LivingEntity entity : world.getLivingEntities()) {
             if (!activeEvent.eventInstanceId().equals(mobRegistry.getEventInstanceId(entity)) || entity.isDead()) {
+                continue;
+            }
+            if (provokedPlayer != null) {
+                if (entity instanceof Mob mob) {
+                    mob.setTarget(provokedPlayer);
+                }
                 continue;
             }
             if (entity instanceof Mob mob
@@ -394,6 +449,16 @@ public final class ActiveAnchorEventService implements Listener {
                 }
             }
         }
+    }
+
+    private Player resolveProvokedPlayer(ActiveAnchorEvent activeEvent, World world) {
+        if (activeEvent.provokedPlayerId() == null) {
+            return null;
+        }
+        Player player = Bukkit.getPlayer(activeEvent.provokedPlayerId());
+        return player != null && player.isOnline() && !player.isDead() && world.equals(player.getWorld())
+                ? player
+                : null;
     }
 
     private Location findGuardReturnLocation(Location bannerLocation) {
@@ -556,7 +621,8 @@ public final class ActiveAnchorEventService implements Listener {
                     loadSmokeSourceLocation(eventSection, world),
                     eventSection.getLong("next-sub-event-at"),
                     eventSection.getLong("no-target-since"),
-                    eventSection.getLong("cleanup-at")
+                    eventSection.getLong("cleanup-at"),
+                    parseUuid(eventSection.getString("provoked-player"))
             ));
         }
     }
@@ -580,6 +646,9 @@ public final class ActiveAnchorEventService implements Listener {
             data.set(path + ".next-sub-event-at", activeEvent.nextSubEventAt());
             data.set(path + ".no-target-since", activeEvent.noTargetSince());
             data.set(path + ".cleanup-at", activeEvent.cleanupAt());
+            if (activeEvent.provokedPlayerId() != null) {
+                data.set(path + ".provoked-player", activeEvent.provokedPlayerId().toString());
+            }
         }
 
         try {
@@ -602,6 +671,17 @@ public final class ActiveAnchorEventService implements Listener {
         );
     }
 
+    private UUID parseUuid(String rawUuid) {
+        if (rawUuid == null || rawUuid.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(rawUuid);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
     private record ActiveAnchorEvent(
             String eventId,
             String eventInstanceId,
@@ -609,26 +689,31 @@ public final class ActiveAnchorEventService implements Listener {
             Location smokeSourceLocation,
             long nextSubEventAt,
             long noTargetSince,
-            long cleanupAt
+            long cleanupAt,
+            UUID provokedPlayerId
     ) {
         boolean bannerDestroyed() {
             return cleanupAt > 0L;
         }
 
         ActiveAnchorEvent withSmokeSourceLocation(Location value) {
-            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, value, nextSubEventAt, noTargetSince, cleanupAt);
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, value, nextSubEventAt, noTargetSince, cleanupAt, provokedPlayerId);
         }
 
         ActiveAnchorEvent withNextSubEventAt(long value) {
-            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, value, noTargetSince, cleanupAt);
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, value, noTargetSince, cleanupAt, provokedPlayerId);
         }
 
         ActiveAnchorEvent withNoTargetSince(long value) {
-            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, nextSubEventAt, value, cleanupAt);
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, nextSubEventAt, value, cleanupAt, provokedPlayerId);
         }
 
         ActiveAnchorEvent withBannerDestroyed(long cleanupAt) {
-            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, nextSubEventAt, noTargetSince, cleanupAt);
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, nextSubEventAt, noTargetSince, cleanupAt, provokedPlayerId);
+        }
+
+        ActiveAnchorEvent withProvokedPlayerId(UUID value) {
+            return new ActiveAnchorEvent(eventId, eventInstanceId, bannerLocation, smokeSourceLocation, nextSubEventAt, noTargetSince, cleanupAt, value);
         }
     }
 }

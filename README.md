@@ -11,6 +11,7 @@ Paper plugin for Minecraft `26.2` that spawns randomized hostile and non-hostile
 - Boss and unique encounters with protected boss tokens.
 - Event trader with emerald and boss-token trades.
 - Active enemy camp and cursed ritual anchors with banners and recurring sub-events.
+- Coordinated anchor defense: ranged attacks provoke every guard and release the group from its banner leash.
 - Admin debug commands for spawning events/classes and overriding progression stages.
 - Optional player boss-kill scoreboard.
 
