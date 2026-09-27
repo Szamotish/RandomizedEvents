@@ -1,4 +1,4 @@
-config-version: 7
+config-version: 8
 
 settings:
   enabled: true
@@ -161,7 +161,7 @@ anchor-events:
     guard-awake-radius: 10
     smoke-marker:
       enabled: true
-      particle: SOUL
+      particles: [SOUL, CAMPFIRE_COSY_SMOKE]
       source-block: SOUL_CAMPFIRE
       source-radius: 3
       height: 36

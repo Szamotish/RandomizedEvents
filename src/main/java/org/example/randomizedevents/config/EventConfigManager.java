@@ -35,7 +35,7 @@ import java.util.logging.Level;
 
 public final class EventConfigManager {
 
-    private static final int CURRENT_CONFIG_VERSION = 7;
+    private static final int CURRENT_CONFIG_VERSION = 8;
 
     private final JavaPlugin plugin;
     private final Map<String, EventDefinition> events = new HashMap<>();
@@ -275,6 +275,8 @@ public final class EventConfigManager {
         setIfMissing(data, "settings.event-selection.trader.base-chance", 0.04);
         setIfMissing(data, "settings.event-selection.trader.boost-interval-days", 10);
         setIfMissing(data, "settings.event-selection.trader.boost-chance", 0.75);
+        setIfMissing(data, "anchor-events.cursed_ritual.smoke-marker.particles",
+                List.of("SOUL", "CAMPFIRE_COSY_SMOKE"));
 
         if (data.isConfigurationSection("events.enemy_camp")) {
             List<Map<?, ?>> campRequired = new ArrayList<>(data.getMapList("events.enemy_camp.required"));
@@ -459,13 +461,20 @@ public final class EventConfigManager {
 
     private AnchorSmokeMarkerDefinition parseSmokeMarker(ConfigurationSection section, String anchorId) {
         if (section == null || !section.getBoolean("enabled", false)) {
-            return new AnchorSmokeMarkerDefinition(false, Particle.CAMPFIRE_SIGNAL_SMOKE, null, 0, 0, 0, 0, 0, 0.0);
+            return new AnchorSmokeMarkerDefinition(false, List.of(Particle.CAMPFIRE_SIGNAL_SMOKE), null, 0, 0, 0, 0, 0, 0.0);
         }
 
-        Particle particle = parseEnum(Particle.class, section.getString("particle", "CAMPFIRE_SIGNAL_SMOKE"));
-        if (particle == null) {
+        List<String> rawParticles = section.getStringList("particles");
+        if (rawParticles.isEmpty()) {
+            rawParticles = List.of(section.getString("particle", "CAMPFIRE_SIGNAL_SMOKE"));
+        }
+        List<Particle> particles = rawParticles.stream()
+                .map(rawParticle -> parseEnum(Particle.class, rawParticle))
+                .filter(Objects::nonNull)
+                .toList();
+        if (particles.isEmpty()) {
             plugin.getLogger().warning("Invalid smoke marker particle for anchor event '" + anchorId + "'.");
-            particle = Particle.CAMPFIRE_SIGNAL_SMOKE;
+            particles = List.of(Particle.CAMPFIRE_SIGNAL_SMOKE);
         }
         Material sourceBlock = parseEnum(Material.class, section.getString("source-block", null));
         if (sourceBlock != null && sourceBlock != Material.CAMPFIRE && sourceBlock != Material.SOUL_CAMPFIRE) {
@@ -475,7 +484,7 @@ public final class EventConfigManager {
 
         return new AnchorSmokeMarkerDefinition(
                 true,
-                particle,
+                List.copyOf(particles),
                 sourceBlock,
                 Math.max(0, section.getInt("source-radius", 3)),
                 Math.max(1, section.getInt("height", 22)),

@@ -690,13 +690,15 @@ public final class EventSpawner {
 
     private LivingEntity spawnMob(Location location, MobDefinition definition, Player target, String eventId, String eventInstanceId) {
         boolean retainedForTarget = shouldRetainForTarget(definition, eventId, target);
+        boolean retainedForAnchor = eventInstanceId != null && config.getAnchorEvent(eventId) != null;
+        boolean persistent = definition.persistent() || retainedForTarget || retainedForAnchor;
         LivingEntity mount = null;
         if (definition.mountType() != null) {
             mount = spawnLiving(location, definition.mountType());
             if (mount != null) {
                 mobRegistry.mark(mount, eventId, eventInstanceId, definition.id() + "_mount", List.of("mount", "no_custom_loot", "hunter_focus"), target);
-                mount.setPersistent(definition.persistent() || retainedForTarget);
-                mount.setRemoveWhenFarAway(!definition.persistent() && !retainedForTarget);
+                mount.setPersistent(persistent);
+                mount.setRemoveWhenFarAway(!persistent);
                 applyNetherSafety(mount, definition);
                 if (mount instanceof Mob mob && target != null) {
                     mob.setTarget(target);
@@ -713,8 +715,8 @@ public final class EventSpawner {
         }
 
         mobRegistry.mark(entity, eventId, eventInstanceId, definition.id(), definition.behaviors(), target);
-        entity.setPersistent(definition.persistent() || retainedForTarget);
-        entity.setRemoveWhenFarAway(!definition.persistent() && !retainedForTarget);
+        entity.setPersistent(persistent);
+        entity.setRemoveWhenFarAway(!persistent);
         entity.setGlowing(definition.glowing());
         entity.setCanPickupItems(false);
 

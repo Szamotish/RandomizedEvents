@@ -5,6 +5,7 @@ import org.bukkit.GameMode;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -254,8 +255,10 @@ public final class ActiveAnchorEventService implements Listener {
                     0.5 + driftZ * progress + Math.sin(angle) * curlRadius
             );
             double particleSpread = Math.max(0.01, marker.spread() * 0.2);
-            world.spawnParticle(marker.particle(), location, marker.count(),
-                    particleSpread, 0.03, particleSpread, 0.005, null, true);
+            for (Particle particle : marker.particles()) {
+                world.spawnParticle(particle, location, marker.count(),
+                        particleSpread, 0.03, particleSpread, 0.005, null, true);
+            }
         }
     }
 
